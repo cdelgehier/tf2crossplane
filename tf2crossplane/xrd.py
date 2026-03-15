@@ -32,12 +32,14 @@ def generate_xrd(
     required = ["providerConfig"]
 
     for var_name, var_def in variables.items():
-        schema = tf_type_to_openapi(var_def.get("type"))
+        default = var_def.get("default")
+        schema = tf_type_to_openapi(var_def.get("type"), default)
         if desc := var_def.get("description", ""):
             schema["description"] = desc
-        if (default := var_def.get("default")) is not None:
-            schema["default"] = default
-        else:
+        # Never embed default in the schema — Kubernetes rejects a default: []
+        # on type: object (and vice-versa). The default value is only used above
+        # to infer the correct OpenAPI type for ambiguous Terraform types (any).
+        if "default" not in var_def:
             required.append(var_name)
         properties[var_name] = schema
 

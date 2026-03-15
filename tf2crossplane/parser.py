@@ -160,7 +160,7 @@ def _unwrap_optional(type_str: str) -> str:
     return inner.strip()
 
 
-def tf_type_to_openapi(tf_type: Any) -> dict[str, Any]:
+def tf_type_to_openapi(tf_type: Any, default: Any = None) -> dict[str, Any]:
     """
     Convert a Terraform type string to an OpenAPI v3 schema fragment.
 
@@ -179,7 +179,14 @@ def tf_type_to_openapi(tf_type: Any) -> dict[str, Any]:
       map(X)              → {type: object, additionalProperties: <recurse on X>}
       object({...})       → {type: object, x-kubernetes-preserve-unknown-fields: true}
       optional(X)         → <unwrap and recurse on X>
-      any / unknown       → {type: object, x-kubernetes-preserve-unknown-fields: true}
+      any / unknown       → inferred from default value if available:
+                            list default → {type: array, items: {type: object, x-kubernetes-preserve-unknown-fields: true}}
+                            dict default → {type: object, x-kubernetes-preserve-unknown-fields: true}
+                            otherwise   → {type: object, x-kubernetes-preserve-unknown-fields: true}
+
+    The default parameter is used only to refine the OpenAPI type for ambiguous
+    Terraform types (any, unknown). It is never embedded in the returned schema —
+    Kubernetes CRD validation rejects complex defaults (e.g. default: [] on type: object).
 
     object({...}) fields are not recursively expanded: the whole object is left
     open with x-kubernetes-preserve-unknown-fields so Kubernetes accepts any
@@ -222,7 +229,12 @@ def tf_type_to_openapi(tf_type: Any) -> dict[str, Any]:
     if type_str.startswith("object("):
         return {"type": "object", "x-kubernetes-preserve-unknown-fields": True}
 
-    # any / unknown / unrecognised — treat as open object
+    # any / unknown / unrecognised — infer from default value when available
+    if isinstance(default, list):
+        return {
+            "type": "array",
+            "items": {"type": "object", "x-kubernetes-preserve-unknown-fields": True},
+        }
     return {"type": "object", "x-kubernetes-preserve-unknown-fields": True}
 
 

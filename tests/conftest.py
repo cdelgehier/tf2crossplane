@@ -13,7 +13,7 @@ import pytest
 @pytest.fixture
 def s3_variables() -> dict:
     return {
-        "bucket": {"type": "string", "description": "Bucket name", "default": None},
+        "bucket": {"type": "string", "description": "Bucket name"},
         "force_destroy": {
             "type": "bool",
             "description": "Force destroy",
@@ -47,8 +47,8 @@ def s3_outputs() -> dict:
 @pytest.fixture
 def ec2_variables() -> dict:
     return {
-        "name": {"type": "string", "description": "Instance name", "default": None},
-        "ami": {"type": "string", "description": "AMI ID", "default": None},
+        "name": {"type": "string", "description": "Instance name"},
+        "ami": {"type": "string", "description": "AMI ID"},
         "instance_type": {
             "type": "string",
             "description": "Instance type",
@@ -140,12 +140,11 @@ def asg_outputs() -> dict:
 @pytest.fixture
 def alb_variables() -> dict:
     return {
-        "name": {"type": "string", "description": "LB name", "default": None},
-        "vpc_id": {"type": "string", "description": "VPC ID", "default": None},
+        "name": {"type": "string", "description": "LB name"},
+        "vpc_id": {"type": "string", "description": "VPC ID"},
         "subnets": {
             "type": "list(string)",
             "description": "Subnet IDs",
-            "default": None,
         },
         "internal": {"type": "bool", "description": "Internal LB", "default": False},
         "load_balancer_type": {
