@@ -1,0 +1,85 @@
+version: "3"
+
+vars:
+  SRC: tf2crossplane
+  TESTS: tests
+
+tasks:
+  default:
+    desc: List available tasks
+    cmd: task --list
+
+  # ── Dependencies ────────────────────────────────────────────────────────────
+
+  install:
+    desc: Install all dependencies (including dev)
+    cmd: uv sync --all-groups
+    # Skip if pyproject.toml and uv.lock haven't changed since last run
+    sources:
+      - pyproject.toml
+      - uv.lock
+
+  # ── Linting & formatting ────────────────────────────────────────────────────
+
+  lint:
+    desc: Run ruff linter
+    cmd: uv run ruff check {{.SRC}} {{.TESTS}}
+
+  fmt:
+    desc: Format code with ruff
+    cmd: uv run ruff format {{.SRC}} {{.TESTS}}
+
+  fmt-check:
+    desc: Check formatting without modifying files
+    cmd: uv run ruff format --check {{.SRC}} {{.TESTS}}
+
+  # ── Tests ───────────────────────────────────────────────────────────────────
+
+  test:
+    desc: Run test suite with coverage
+    cmd: uv run pytest
+
+  # ── Generation examples ─────────────────────────────────────────────────────
+
+  generate-s3:
+    desc: Generate XRD + Composition for terraform-aws-s3-bucket (example)
+    cmd: |
+      uv run tf2crossplane \
+        --module-url 'git::https://github.com/terraform-aws-modules/terraform-aws-s3-bucket.git?ref=v4.6.0' \
+        --output-dir examples/s3/ \
+        --group example.crossplane.io \
+        --kind S3Bucket
+
+  generate-asg:
+    desc: Generate XRD + Composition for terraform-aws-autoscaling (nested optional types)
+    cmd: |
+      uv run tf2crossplane \
+        --module-url 'git::https://github.com/terraform-aws-modules/terraform-aws-autoscaling.git?ref=v8.3.0' \
+        --output-dir examples/asg/ \
+        --group example.crossplane.io \
+        --kind AutoScalingGroup
+
+  # ── Pre-commit ──────────────────────────────────────────────────────────────
+
+  pre-commit-install:
+    desc: Install pre-commit hooks (pre-push + commit-msg)
+    cmds:
+      - pre-commit install
+      - pre-commit install --hook-type commit-msg
+
+  pre-commit:
+    desc: Run all pre-commit hooks on staged files
+    cmd: pre-commit run
+
+  pre-commit-all:
+    desc: Run all pre-commit hooks on all files
+    cmd: pre-commit run --all-files
+
+  # ── All-in-one ──────────────────────────────────────────────────────────────
+
+  ci:
+    desc: Run everything (lint + format check + tests)
+    cmds:
+      - task: lint
+      - task: fmt-check
+      - task: test

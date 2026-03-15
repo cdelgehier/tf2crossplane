@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tf2crossplane"
+version = "0.1.0"
+description = "Generate Crossplane XRD + Composition from a Terraform module Git URL."
+authors = [
+    {name = "Cedric DELGEHIER", email = "cedric.delgehier@gmail.com"}
+]
+requires-python = ">=3.14"
+dependencies = [
+    "python-hcl2>=4.3.0",
+    "pyyaml>=6.0.0",
+    "click>=8.1.0",
+    "pydantic>=2.0.0",
+]
+
+[project.scripts]
+tf2crossplane = "tf2crossplane.main:main"
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.0"
+version_provider = "pep621"
+tag_format = "v$version"
+update_changelog_on_bump = true
+version_files = [
+    "pyproject.toml:^version",
+]
+
+[dependency-groups]
+dev = [
+    "commitizen>=3.0.0",
+    "ruff>=0.13.0",
+    "pytest>=8.0.0",
+    "pytest-cov>=6.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-v --cov=tf2crossplane --cov-report=term-missing"
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+fix = true
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "UP", "B", "C4", "SIM"]
+ignore = ["E501"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["tf2crossplane"]
