@@ -68,7 +68,10 @@ jobs:
           prerelease: false
           # Attach wheel + sdist so users can install directly without PyPI:
           # pip install https://github.com/.../releases/download/vX.Y.Z/tf2crossplane-X.Y.Z-py3-none-any.whl
-          files: dist/*
+          # Use explicit globs to avoid picking up dist/.gitignore (created by uv build)
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
