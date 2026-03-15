@@ -1,3 +1,9 @@
+## v0.3.1 (2026-03-15)
+
+### Fix
+
+- **parser**: return (tmpdir_root, module_path) tuple to fix rmtree on subdir clones
+
 ## v0.3.0 (2026-03-15)
 
 ### Feat
