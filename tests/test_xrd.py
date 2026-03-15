@@ -18,7 +18,7 @@ def test_xrd_structure(s3_variables, s3_outputs):
     spec = xrd["spec"]
     assert spec["group"] == "example.crossplane.io"
     assert spec["names"]["kind"] == "XS3Bucket"
-    assert spec["claimNames"]["kind"] == "S3Bucket"
+    assert "claimNames" not in spec
 
     version = spec["versions"][0]
     properties = version["schema"]["openAPIV3Schema"]["properties"]["spec"][

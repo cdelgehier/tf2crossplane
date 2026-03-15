@@ -54,10 +54,6 @@ def generate_xrd(
                 "kind": composite_kind,
                 "plural": composite_plural,
             },
-            "claimNames": {
-                "kind": kind,
-                "plural": plural,
-            },
             "defaultCompositionUpdatePolicy": "Manual",
             "versions": [
                 {
