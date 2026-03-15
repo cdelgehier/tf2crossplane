@@ -79,7 +79,7 @@ def _build_template(variables: dict[str, Any], module_url: str) -> str:
     varmap_lines = []
     for var_name, var_def in variables.items():
         expr = tf_type_to_go_expr(var_name, var_def.get("type"))
-        varmap_lines.append(f"                  {var_name}: {expr}")
+        varmap_lines.append(f"      {var_name}: {expr}")
 
     varmap_block = "\n".join(varmap_lines)
 
