@@ -1,3 +1,10 @@
+![Python](https://img.shields.io/badge/Python-3.14-3776AB.svg?style=for-the-badge&logo=Python&logoColor=white)
+![Crossplane](https://img.shields.io/badge/Crossplane-EF7B4D.svg?style=for-the-badge&logo=Crossplane&logoColor=white)
+![OpenTofu](https://img.shields.io/badge/OpenTofu-FFDA18.svg?style=for-the-badge&logo=OpenTofu&logoColor=black)
+![Task](https://img.shields.io/badge/Task-29BEB0.svg?style=for-the-badge&logo=Task&logoColor=white)
+![Ruff](https://img.shields.io/badge/Ruff-D7FF64.svg?style=for-the-badge&logo=Ruff&logoColor=black)
+![uv](https://img.shields.io/badge/uv-DE5FE9.svg?style=for-the-badge&logo=uv&logoColor=white)
+
 # tf2crossplane
 
 Generate Crossplane **XRD** + **Composition** manifests from a Terraform module Git URL — no manual YAML writing.
