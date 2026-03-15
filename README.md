@@ -167,6 +167,20 @@ tf2crossplane \
   --kind AutoScalingGroup
 ```
 
+**Module in a subdirectory of a mono-repo (the `//` separator):**
+
+Some Terraform registries publish multiple modules in a single Git repo (e.g. `terraform-aws-iam`). Use the Terraform `//` subdir syntax to point at the right folder:
+
+```bash
+tf2crossplane \
+  --module-url 'git::https://github.com/terraform-aws-modules/terraform-aws-iam.git//modules/iam-role?ref=v5.54.0' \
+  --output-dir out/iam-role/ \
+  --group platform.example.io \
+  --kind IAMRole
+```
+
+`tf2crossplane` splits the URL at `//`, clones only the repo root, then parses `variables.tf` / `outputs.tf` from the subdirectory. The full URL (including `//`) is preserved verbatim in the generated `Composition` so that `provider-opentofu` fetches the correct submodule at runtime.
+
 ### Applying the output
 
 ```bash

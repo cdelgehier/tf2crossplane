@@ -29,14 +29,17 @@ def clone_module(url: str) -> Path:
     """
     Shallow-clone a Terraform module from a Git URL into a temp directory.
 
-    Supports the Terraform git:: prefix and ?ref= query parameter:
+    Supports the Terraform git:: prefix, ?ref= query parameter, and the //subdir
+    syntax for pointing at a subdirectory within a repo:
       git::https://github.com/org/module.git?ref=v1.2.3
+      git::https://github.com/org/mono-repo.git//modules/my-module?ref=v1.2.3
 
     --depth=1 avoids downloading the full commit history — we only need the
     current state of the files to parse variables.tf and outputs.tf.
 
-    Returns the path to the cloned directory; the caller is responsible for
-    deleting it (typically via shutil.rmtree in a try/finally block).
+    Returns the path to the cloned directory (or subdirectory); the caller is
+    responsible for deleting the tmpdir root (typically via shutil.rmtree in a
+    try/finally block).
     """
     # Strip the git:: prefix that Terraform uses but git clone does not understand
     clean_url = url.replace("git::", "")
@@ -44,14 +47,30 @@ def clone_module(url: str) -> Path:
     if "?ref=" in clean_url:
         clean_url, ref = clean_url.rsplit("?ref=", 1)
 
+    # Support Terraform's //subdir syntax: everything after the first // that is
+    # NOT the scheme separator (i.e. not the :// in https://) is a subdir path.
+    # Strategy: skip past the scheme (e.g. "https://"), then look for a second //.
+    subdir = None
+    scheme_end = clean_url.find("//") + 2  # points just after "://"
+    rest = clean_url[scheme_end:]
+    if "//" in rest:
+        before, subdir = rest.split("//", 1)
+        repo_url = clean_url[:scheme_end] + before
+    else:
+        repo_url = clean_url
+
     tmpdir = tempfile.mkdtemp(prefix="tfgen-")
     cmd = ["git", "clone", "--depth=1"]
     if ref:
         # --branch accepts both branch names and tags (e.g. v4.6.0)
         cmd += ["--branch", ref]
-    cmd += [clean_url, tmpdir]
+    cmd += [repo_url, tmpdir]
     subprocess.run(cmd, check=True, capture_output=True)
-    return Path(tmpdir)
+
+    result = Path(tmpdir)
+    if subdir:
+        result = result / subdir
+    return result
 
 
 def parse_variables(module_dir: Path) -> dict[str, Any]:

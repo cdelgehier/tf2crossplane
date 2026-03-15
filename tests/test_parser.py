@@ -1,6 +1,10 @@
+from pathlib import Path
+from unittest.mock import patch
+
 import pytest
 
 from tf2crossplane.parser import (
+    clone_module,
     module_name_from_url,
     module_name_to_kind,
     tf_type_to_go_expr,
@@ -96,11 +100,75 @@ def test_tf_type_to_go_expr_no_pipe(var_name, tf_type):
         ),
         ("https://github.com/org/my-module.git", "my-module"),
         ("git::https://github.com/org/module", "module"),
+        # subdir syntax: last segment of the subdir path becomes the module name
+        (
+            "git::https://github.com/terraform-aws-modules/terraform-aws-iam.git//modules/iam-role?ref=v5.54.0",
+            "iam-role",
+        ),
+        (
+            "git::https://github.com/org/mono-repo.git//modules/my-module",
+            "my-module",
+        ),
     ],
 )
 def test_module_name_from_url(url, expected):
     """The module name is extracted from the last path segment of the URL, without the .git suffix or ?ref= query."""
     assert module_name_from_url(url) == expected
+
+
+@pytest.mark.parametrize(
+    "url,expected_repo,expected_subdir,expected_ref",
+    [
+        # Plain URL — no subdir, no ref
+        (
+            "git::https://github.com/org/module.git",
+            "https://github.com/org/module.git",
+            None,
+            None,
+        ),
+        # With ref only
+        (
+            "git::https://github.com/org/module.git?ref=v1.0.0",
+            "https://github.com/org/module.git",
+            None,
+            "v1.0.0",
+        ),
+        # With subdir and ref
+        (
+            "git::https://github.com/org/mono.git//modules/foo?ref=v2.0.0",
+            "https://github.com/org/mono.git",
+            "modules/foo",
+            "v2.0.0",
+        ),
+        # With subdir, no ref
+        (
+            "git::https://github.com/org/mono.git//modules/foo",
+            "https://github.com/org/mono.git",
+            "modules/foo",
+            None,
+        ),
+    ],
+)
+def test_clone_module_git_command(url, expected_repo, expected_subdir, expected_ref):
+    """clone_module passes the correct repo URL (without subdir) to git clone and returns the right path."""
+    fake_tmpdir = "/tmp/tfgen-fake"
+
+    with (
+        patch("tf2crossplane.parser.tempfile.mkdtemp", return_value=fake_tmpdir),
+        patch("tf2crossplane.parser.subprocess.run") as mock_run,
+    ):
+        result = clone_module(url)
+
+    expected_cmd = ["git", "clone", "--depth=1"]
+    if expected_ref:
+        expected_cmd += ["--branch", expected_ref]
+    expected_cmd += [expected_repo, fake_tmpdir]
+    mock_run.assert_called_once_with(expected_cmd, check=True, capture_output=True)
+
+    if expected_subdir:
+        assert result == Path(fake_tmpdir) / expected_subdir
+    else:
+        assert result == Path(fake_tmpdir)
 
 
 @pytest.mark.parametrize(
