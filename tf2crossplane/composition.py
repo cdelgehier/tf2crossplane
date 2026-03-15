@@ -60,7 +60,11 @@ def _literal_representer(dumper, data):
     return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
 
 
-def _build_template(variables: dict[str, Any], module_url: str) -> str:
+def _build_template(
+    variables: dict[str, Any],
+    module_url: str,
+    provider_config_kind: str = "ProviderConfig",
+) -> str:
     """
     Build the Go template string that function-go-templating will render at sync time.
 
@@ -93,6 +97,7 @@ metadata:
 spec:
   providerConfigRef:
     name: {{{{ .observed.composite.resource.spec.providerConfig }}}}
+    kind: {provider_config_kind}
   forProvider:
     source: Remote
     module: {module_url}
@@ -131,7 +136,9 @@ def generate_composition(
     composite_plural = "x" + plural
 
     # _Literal marks the template string so PyYAML renders it with | block style
-    template = _Literal(_build_template(variables, module_url))
+    template = _Literal(
+        _build_template(variables, module_url, settings.provider_config_kind)
+    )
 
     composition = {
         "apiVersion": "apiextensions.crossplane.io/v1",

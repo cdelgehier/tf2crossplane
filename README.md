@@ -146,6 +146,7 @@ tf2crossplane --module-url <git-url> [OPTIONS]
 | `--version` | `v1alpha1` | API version |
 | `--kind` | *(auto-detected)* | Override the CamelCase kind (e.g. `S3Bucket`) |
 | `--provider-config` | `my-provider-config` | Name of the `ProviderConfig` resource on the cluster that holds the cloud credentials (AWS role, GCP SA, …). Injected as the default value for `spec.providerConfig` in the XRD — each claim can override it to target a different account. |
+| `--provider-config-kind` | `ProviderConfig` | Kind for `providerConfigRef` in the generated Workspace. Use `ProviderConfig` for namespace-scoped setups and `ClusterProviderConfig` for cluster-scoped setups. |
 
 ### Examples
 

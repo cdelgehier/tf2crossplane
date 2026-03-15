@@ -15,6 +15,7 @@ class Settings(BaseModel):
     output_dir: str
     group: str
     provider_config: str
+    provider_config_kind: str = "ProviderConfig"
     version: str = "v1alpha1"
     kind: str = ""  # override auto-detected kind; derived from module name if empty
 

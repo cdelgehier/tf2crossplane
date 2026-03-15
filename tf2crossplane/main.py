@@ -45,6 +45,12 @@ from tf2crossplane.xrd import generate_xrd
 @click.option(
     "--kind", default="", help="Override auto-detected kind (CamelCase, e.g. S3Bucket)"
 )
+@click.option(
+    "--provider-config-kind",
+    default="ProviderConfig",
+    show_default=True,
+    help="Kind for providerConfigRef (ProviderConfig or ClusterProviderConfig)",
+)
 def main(
     module_url: str,
     output_dir: str,
@@ -52,6 +58,7 @@ def main(
     provider_config: str,
     version: str,
     kind: str,
+    provider_config_kind: str,
 ) -> None:
     """Generate Crossplane XRD + Composition from a Terraform module Git URL."""
 
@@ -63,6 +70,7 @@ def main(
         output_dir=output_dir,
         group=group,
         provider_config=provider_config,
+        provider_config_kind=provider_config_kind,
         version=version,
         kind=kind,
     )
