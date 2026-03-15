@@ -76,12 +76,12 @@ def main(
     # without polluting the working directory. The tmpdir is always deleted in
     # the finally block, even if parsing raises an exception.
     LOGGER.info("Cloning %s ...", module_url)
-    tmpdir = clone_module(module_url)
+    tmpdir_root, module_path = clone_module(module_url)
     try:
-        variables = parse_variables(tmpdir)
-        outputs = parse_outputs(tmpdir)
+        variables = parse_variables(module_path)
+        outputs = parse_outputs(module_path)
     finally:
-        shutil.rmtree(tmpdir)
+        shutil.rmtree(tmpdir_root)
 
     LOGGER.info(
         "Found %d variables, %d outputs → kind: %s",

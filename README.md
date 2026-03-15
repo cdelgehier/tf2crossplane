@@ -173,7 +173,7 @@ Some Terraform registries publish multiple modules in a single Git repo (e.g. `t
 
 ```bash
 tf2crossplane \
-  --module-url 'git::https://github.com/terraform-aws-modules/terraform-aws-iam.git//modules/iam-role?ref=v5.54.0' \
+  --module-url 'git::https://github.com/terraform-aws-modules/terraform-aws-iam.git//modules/iam-role?ref=v6.4.0' \
   --output-dir out/iam-role/ \
   --group platform.example.io \
   --kind IAMRole

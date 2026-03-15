@@ -25,7 +25,7 @@ from typing import Any
 import hcl2
 
 
-def clone_module(url: str) -> Path:
+def clone_module(url: str) -> tuple[Path, Path]:
     """
     Shallow-clone a Terraform module from a Git URL into a temp directory.
 
@@ -37,9 +37,11 @@ def clone_module(url: str) -> Path:
     --depth=1 avoids downloading the full commit history — we only need the
     current state of the files to parse variables.tf and outputs.tf.
 
-    Returns the path to the cloned directory (or subdirectory); the caller is
-    responsible for deleting the tmpdir root (typically via shutil.rmtree in a
-    try/finally block).
+    Returns a (tmpdir_root, module_path) tuple:
+      - tmpdir_root: the temp directory that was created — the caller must delete
+        this with shutil.rmtree to clean up the entire clone.
+      - module_path: the directory containing variables.tf / outputs.tf — equals
+        tmpdir_root for plain repos, or tmpdir_root/subdir for //subdir URLs.
     """
     # Strip the git:: prefix that Terraform uses but git clone does not understand
     clean_url = url.replace("git::", "")
@@ -59,18 +61,16 @@ def clone_module(url: str) -> Path:
     else:
         repo_url = clean_url
 
-    tmpdir = tempfile.mkdtemp(prefix="tfgen-")
+    tmpdir = Path(tempfile.mkdtemp(prefix="tfgen-"))
     cmd = ["git", "clone", "--depth=1"]
     if ref:
         # --branch accepts both branch names and tags (e.g. v4.6.0)
         cmd += ["--branch", ref]
-    cmd += [repo_url, tmpdir]
+    cmd += [repo_url, str(tmpdir)]
     subprocess.run(cmd, check=True, capture_output=True)
 
-    result = Path(tmpdir)
-    if subdir:
-        result = result / subdir
-    return result
+    module_path = tmpdir / subdir if subdir else tmpdir
+    return tmpdir, module_path
 
 
 def parse_variables(module_dir: Path) -> dict[str, Any]:

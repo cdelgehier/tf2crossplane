@@ -102,7 +102,7 @@ def test_tf_type_to_go_expr_no_pipe(var_name, tf_type):
         ("git::https://github.com/org/module", "module"),
         # subdir syntax: last segment of the subdir path becomes the module name
         (
-            "git::https://github.com/terraform-aws-modules/terraform-aws-iam.git//modules/iam-role?ref=v5.54.0",
+            "git::https://github.com/terraform-aws-modules/terraform-aws-iam.git//modules/iam-role?ref=v6.4.0",
             "iam-role",
         ),
         (
@@ -157,7 +157,7 @@ def test_clone_module_git_command(url, expected_repo, expected_subdir, expected_
         patch("tf2crossplane.parser.tempfile.mkdtemp", return_value=fake_tmpdir),
         patch("tf2crossplane.parser.subprocess.run") as mock_run,
     ):
-        result = clone_module(url)
+        result = clone_module(url)  # returns (tmpdir_root, module_path)
 
     expected_cmd = ["git", "clone", "--depth=1"]
     if expected_ref:
@@ -165,10 +165,12 @@ def test_clone_module_git_command(url, expected_repo, expected_subdir, expected_
     expected_cmd += [expected_repo, fake_tmpdir]
     mock_run.assert_called_once_with(expected_cmd, check=True, capture_output=True)
 
+    tmpdir_root, module_path = result
+    assert tmpdir_root == Path(fake_tmpdir)
     if expected_subdir:
-        assert result == Path(fake_tmpdir) / expected_subdir
+        assert module_path == Path(fake_tmpdir) / expected_subdir
     else:
-        assert result == Path(fake_tmpdir)
+        assert module_path == Path(fake_tmpdir)
 
 
 @pytest.mark.parametrize(
