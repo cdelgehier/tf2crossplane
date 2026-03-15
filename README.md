@@ -182,7 +182,47 @@ spec:
 
 ## Type mapping
 
-Terraform types are converted to OpenAPI v3 schemas and Go template expressions:
+Each Terraform variable goes through two independent transformations — one for the XRD schema, one for the Composition template:
+
+```mermaid
+flowchart TD
+    HCL["variables.tf
+    ───────────────────────
+    bucket        = string
+    force_destroy = bool
+    tags          = map(string)
+    listeners     = optional(any, {})"]
+
+    HCL -->|python-hcl2| RAW["Raw type string
+    ───────────────────────
+    'string'
+    'bool'
+    'map(string)'
+    'optional(any, {})'"]
+
+    RAW -->|_unwrap_optional| CLEAN["Clean type
+    ───────────────────────
+    'string'
+    'bool'
+    'map(string)'
+    'any'"]
+
+    CLEAN -->|tf_type_to_openapi| OAS["OpenAPI v3 schema → XRD
+    ───────────────────────
+    type: string
+    type: boolean
+    type: object + additionalProperties
+    type: object + x-kubernetes-preserve-unknown-fields"]
+
+    CLEAN -->|tf_type_to_go_expr| GOTPL["Go template expr → Composition
+    ───────────────────────
+    index .spec 'bucket' | quote
+    index .spec 'force_destroy'
+    index .spec 'tags' | toJson
+    index .spec 'listeners' | toJson"]
+```
+
+Reference table:
 
 | Terraform type | OpenAPI schema | Go template filter |
 |----------------|----------------|--------------------|
