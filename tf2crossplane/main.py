@@ -96,6 +96,16 @@ from tf2crossplane.xrd import generate_xrd
     help="Add a function-auto-ready step to the pipeline to propagate composed resource readiness to the composite",
 )
 @click.option(
+    "--extra-var",
+    "extra_vars",
+    multiple=True,
+    help=(
+        "Add a field to the XRD spec that is not part of the Terraform module. "
+        "Format: name:type:description or name:type:description:default. "
+        "Can be repeated. Example: --extra-var 'target_region:string:AWS region'"
+    ),
+)
+@click.option(
     "--secret-name-format",
     default="",
     help=(
@@ -119,6 +129,7 @@ def main(
     function_auto_ready: str,
     scope: str,
     auto_ready: bool,
+    extra_vars: tuple[str, ...],
     secret_name_format: str,
 ) -> None:
     """Generate Crossplane XRD + Composition from a Terraform module Git URL."""
@@ -141,6 +152,7 @@ def main(
         auto_ready=auto_ready,
         version=version,
         kind=kind,
+        extra_vars=list(extra_vars),
         secret_name_format=secret_name_format,
     )
 

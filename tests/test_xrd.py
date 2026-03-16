@@ -1,5 +1,5 @@
 from tf2crossplane.settings import Settings
-from tf2crossplane.xrd import generate_xrd
+from tf2crossplane.xrd import _parse_extra_var, generate_xrd
 
 
 def test_xrd_structure(s3_variables, s3_outputs):
@@ -43,8 +43,8 @@ def test_xrd_structure(s3_variables, s3_outputs):
     assert properties["allowed_cidrs"]["type"] == "array"
 
 
-def test_xrd_no_meta_account_meta_region(s3_variables, s3_outputs):
-    """meta_account and meta_region (CMA-specific routing fields) must not appear in the XRD schema."""
+def test_xrd_no_extra_vars_by_default(s3_variables, s3_outputs):
+    """Without --extra-var, only module variables appear in the XRD schema."""
     settings = Settings(
         module_url="git::https://example.com/module.git",
         output_dir=".",
@@ -56,8 +56,8 @@ def test_xrd_no_meta_account_meta_region(s3_variables, s3_outputs):
         "spec"
     ]["properties"]
 
-    assert "meta_account" not in properties
-    assert "meta_region" not in properties
+    assert "target_account" not in properties
+    assert "target_region" not in properties
 
 
 def _settings():
@@ -126,6 +126,85 @@ def test_xrd_alb_required_fields(alb_variables, alb_outputs):
     assert "subnets" in required
     assert "load_balancer_type" not in required
     assert "internal" not in required
+
+
+def test_xrd_extra_var_required(s3_variables, s3_outputs):
+    """An extra-var without default is added to the XRD schema and marked required."""
+    settings = Settings(
+        module_url="git::https://example.com/module.git",
+        output_dir=".",
+        group="example.crossplane.io",
+        provider_config="my-provider-config",
+        extra_vars=["target_region:string:AWS region to deploy into"],
+    )
+    xrd = generate_xrd(s3_variables, s3_outputs, "S3Bucket", settings)
+    spec = xrd["spec"]["versions"][0]["schema"]["openAPIV3Schema"]["properties"]["spec"]
+
+    assert "target_region" in spec["properties"]
+    assert spec["properties"]["target_region"]["type"] == "string"
+    assert (
+        spec["properties"]["target_region"]["description"]
+        == "AWS region to deploy into"
+    )
+    assert "target_region" in spec["required"]
+
+
+def test_xrd_extra_var_optional_with_default(s3_variables, s3_outputs):
+    """An extra-var with a default is added to the XRD schema but not required."""
+    settings = Settings(
+        module_url="git::https://example.com/module.git",
+        output_dir=".",
+        group="example.crossplane.io",
+        provider_config="my-provider-config",
+        extra_vars=["environment:string:Target environment:prod"],
+    )
+    xrd = generate_xrd(s3_variables, s3_outputs, "S3Bucket", settings)
+    spec = xrd["spec"]["versions"][0]["schema"]["openAPIV3Schema"]["properties"]["spec"]
+
+    assert "environment" in spec["properties"]
+    assert "environment" not in spec["required"]
+
+
+def test_xrd_extra_var_multiple(s3_variables, s3_outputs):
+    """Multiple extra-vars are all added to the XRD schema."""
+    settings = Settings(
+        module_url="git::https://example.com/module.git",
+        output_dir=".",
+        group="example.crossplane.io",
+        provider_config="my-provider-config",
+        extra_vars=[
+            "target_region:string:AWS region",
+            "target_account:string:AWS account ID",
+        ],
+    )
+    xrd = generate_xrd(s3_variables, s3_outputs, "S3Bucket", settings)
+    props = xrd["spec"]["versions"][0]["schema"]["openAPIV3Schema"]["properties"][
+        "spec"
+    ]["properties"]
+
+    assert "target_region" in props
+    assert "target_account" in props
+
+
+def test_parse_extra_var_required():
+    name, var_def = _parse_extra_var("target_region:string:AWS region")
+    assert name == "target_region"
+    assert var_def["type"] == "string"
+    assert var_def["description"] == "AWS region"
+    assert "default" not in var_def
+
+
+def test_parse_extra_var_with_default():
+    name, var_def = _parse_extra_var("environment:string:Target environment:prod")
+    assert name == "environment"
+    assert var_def["default"] == "prod"
+
+
+def test_parse_extra_var_no_description():
+    name, var_def = _parse_extra_var("env:string")
+    assert name == "env"
+    assert var_def["description"] == ""
+    assert "default" not in var_def
 
 
 def test_xrd_alb_types(alb_variables, alb_outputs):

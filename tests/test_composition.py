@@ -54,15 +54,25 @@ def test_composition_uses_provider_config_from_claim(s3_variables, s3_outputs):
     assert ".observed.composite.resource.spec.providerConfig" in template
 
 
-def test_composition_no_meta_account_meta_region(s3_variables, s3_outputs):
-    """meta_account and meta_region (CMA-specific routing fields) must not appear in the template."""
+def test_composition_extra_vars_not_in_template(s3_variables, s3_outputs):
+    """Extra vars added to the XRD must not appear in the Composition go template varmap."""
+    settings = Settings(
+        module_url=_settings().module_url,
+        output_dir=".",
+        group="example.crossplane.io",
+        provider_config="my-provider-config",
+        extra_vars=[
+            "target_region:string:AWS region",
+            "target_account:string:AWS account",
+        ],
+    )
     composition, _, _ = generate_composition(
-        s3_variables, s3_outputs, "S3Bucket", _settings().module_url, _settings()
+        s3_variables, s3_outputs, "S3Bucket", settings.module_url, settings
     )
     template = composition["spec"]["pipeline"][0]["input"]["inline"]["template"]
 
-    assert "meta_account" not in template
-    assert "meta_region" not in template
+    assert "target_account" not in template
+    assert "target_region" not in template
 
 
 def test_secret_name_format_absent_by_default(s3_variables, s3_outputs):

@@ -154,6 +154,50 @@ tf2crossplane --module-url <git-url> [OPTIONS]
 | `--function-go-templating` | `function-go-templating` | Name of the `function-go-templating` Function installed on the cluster. Override if installed under a different name (e.g. `upbound-function-go-templating`). |
 | `--function-auto-ready` | `function-auto-ready` | Name of the `function-auto-ready` Function installed on the cluster. Override if installed under a different name. Only used when `--auto-ready` is set. |
 | `--auto-ready/--no-auto-ready` | `true` | Append a `function-auto-ready` step to the pipeline so composed resource readiness propagates to the composite. Requires `function-auto-ready` installed on the cluster. |
+| `--extra-var` | *(none)* | Add a field to the XRD spec that does not come from the Terraform module. Can be repeated. See [Extra vars](#extra-vars). |
+| `--secret-name-format` | *(none)* | Generate a `writeConnectionSecretToRef` block in the Workspace with a dynamic name. See [Secret name format](#secret-name-format). |
+
+### Extra vars
+
+Some fields belong in the XRD claim schema but are not Terraform module variables — for example routing fields used to select a provider or name a secret. `--extra-var` injects such fields into the XRD `spec.properties` without adding them to the Workspace `varmap`.
+
+**Format:** `name:type:description` (required field) or `name:type:description:default` (optional field)
+
+```bash
+tf2crossplane \
+  --module-url '...' \
+  --extra-var 'target_region:string:AWS region to deploy into' \
+  --extra-var 'target_account:string:AWS account ID'
+```
+
+The two extra fields appear in the XRD schema and are marked `required` (no default). They are **not** passed to OpenTofu as Terraform variables, but are available for `--secret-name-format` placeholders.
+
+To make a field optional, add a default as a fourth colon-separated value:
+
+```bash
+--extra-var 'environment:string:Target environment:prod'
+```
+
+### Secret name format
+
+When OpenTofu outputs need to be stored in a Kubernetes Secret, use `--secret-name-format` to add a `writeConnectionSecretToRef` block to the generated Workspace.
+
+**Supported placeholders:**
+
+| Placeholder | Resolves to |
+|-------------|-------------|
+| `{module}` | Literal module name, inlined at generation time (e.g. `terraform-aws-alb`) |
+| `{namespace}` | `.metadata.namespace` of the composite resource at runtime |
+| `{name}` | `.metadata.name` of the composite resource at runtime |
+| `{<field>}` | `.spec.<field>` of the composite resource at runtime — any spec field, including extra vars |
+
+```bash
+tf2crossplane \
+  --module-url '...' \
+  --extra-var 'target_region:string:AWS region' \
+  --extra-var 'target_account:string:AWS account ID' \
+  --secret-name-format 'tf-outputs-{module}-{namespace}-{name}-{target_account}-{target_region}'
+```
 
 ### Examples
 

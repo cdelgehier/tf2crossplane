@@ -4,6 +4,32 @@ from tf2crossplane.parser import tf_type_to_openapi
 from tf2crossplane.settings import Settings
 
 
+def _parse_extra_var(raw: str) -> tuple[str, dict[str, Any]]:
+    """
+    Parse an --extra-var string into a (name, var_def) pair compatible with generate_xrd.
+
+    Format: name:type:description  (required field, no default)
+            name:type:description:default  (optional field with default)
+
+    Examples:
+      "target_region:string:AWS region"               → required
+      "environment:string:Target environment:prod"    → optional, default "prod"
+    """
+    parts = raw.split(":", 3)
+    if len(parts) < 2:
+        raise ValueError(
+            f"--extra-var must be 'name:type', 'name:type:description', or "
+            f"'name:type:description:default', got: {raw!r}"
+        )
+    name = parts[0].strip()
+    type_ = parts[1].strip()
+    desc = parts[2].strip() if len(parts) > 2 else ""
+    var_def: dict[str, Any] = {"type": type_, "description": desc}
+    if len(parts) > 3:
+        var_def["default"] = parts[3]
+    return name, var_def
+
+
 def generate_xrd(
     variables: dict[str, Any],
     outputs: dict[str, Any],
@@ -31,7 +57,12 @@ def generate_xrd(
     }
     required = ["providerConfig"]
 
-    for var_name, var_def in variables.items():
+    all_vars = dict(variables)
+    for raw in settings.extra_vars:
+        name, var_def = _parse_extra_var(raw)
+        all_vars[name] = var_def
+
+    for var_name, var_def in all_vars.items():
         default = var_def.get("default")
         schema = tf_type_to_openapi(var_def.get("type"), default)
         if desc := var_def.get("description", ""):

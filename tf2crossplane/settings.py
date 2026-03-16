@@ -25,6 +25,9 @@ class Settings(BaseModel):
     workspace_source: str = "Remote"
     version: str = "v1alpha1"
     kind: str = ""  # override auto-detected kind; derived from module name if empty
+    extra_vars: list[
+        str
+    ] = []  # additional XRD fields not from the Terraform module; format: name:type:description[:default]
     secret_name_format: str = (
         ""  # Go printf format for writeConnectionSecretToRef.name; empty = omit
     )
