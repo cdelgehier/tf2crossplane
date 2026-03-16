@@ -1,4 +1,4 @@
-from tf2crossplane.composition import generate_composition
+from tf2crossplane.composition import _format_to_go_printf, generate_composition
 from tf2crossplane.settings import Settings
 
 
@@ -63,6 +63,74 @@ def test_composition_no_meta_account_meta_region(s3_variables, s3_outputs):
 
     assert "meta_account" not in template
     assert "meta_region" not in template
+
+
+def test_secret_name_format_absent_by_default(s3_variables, s3_outputs):
+    """Without --secret-name-format, writeConnectionSecretToRef must not appear in the template."""
+    composition, _, _ = generate_composition(
+        s3_variables, s3_outputs, "S3Bucket", _settings().module_url, _settings()
+    )
+    template = composition["spec"]["pipeline"][0]["input"]["inline"]["template"]
+
+    assert "writeConnectionSecretToRef" not in template
+
+
+def test_secret_name_format_generates_printf(s3_variables, s3_outputs):
+    """--secret-name-format generates a writeConnectionSecretToRef block with a Go printf expression."""
+    settings = Settings(
+        module_url="git::https://github.com/terraform-aws-modules/terraform-aws-s3-bucket.git?ref=v4.6.0",
+        output_dir=".",
+        group="example.crossplane.io",
+        provider_config="my-provider-config",
+        secret_name_format="tf-outputs-{module}-{namespace}-{name}",
+    )
+    composition, _, _ = generate_composition(
+        s3_variables, s3_outputs, "S3Bucket", settings.module_url, settings
+    )
+    template = composition["spec"]["pipeline"][0]["input"]["inline"]["template"]
+
+    assert "writeConnectionSecretToRef" in template
+    assert 'printf "tf-outputs-terraform-aws-s3-bucket-%s-%s"' in template
+    assert ".observed.composite.resource.metadata.namespace" in template
+    assert ".observed.composite.resource.metadata.name" in template
+
+
+def test_secret_name_format_spec_field(s3_variables, s3_outputs):
+    """Unknown placeholders in --secret-name-format map to spec fields."""
+    settings = Settings(
+        module_url="git::https://github.com/terraform-aws-modules/terraform-aws-s3-bucket.git?ref=v4.6.0",
+        output_dir=".",
+        group="example.crossplane.io",
+        provider_config="my-provider-config",
+        secret_name_format="secret-{name}-{region}",
+    )
+    composition, _, _ = generate_composition(
+        s3_variables, s3_outputs, "S3Bucket", settings.module_url, settings
+    )
+    template = composition["spec"]["pipeline"][0]["input"]["inline"]["template"]
+
+    assert ".observed.composite.resource.spec.region" in template
+
+
+def test_format_to_go_printf_no_placeholders():
+    assert _format_to_go_printf("my-static-secret", "mod") == '"my-static-secret"'
+
+
+def test_format_to_go_printf_module_inline():
+    result = _format_to_go_printf("prefix-{module}-suffix", "terraform-aws-s3-bucket")
+    assert result == '"prefix-terraform-aws-s3-bucket-suffix"'
+
+
+def test_format_to_go_printf_metadata():
+    result = _format_to_go_printf("{namespace}-{name}", "mod")
+    assert 'printf "%s-%s"' in result
+    assert ".observed.composite.resource.metadata.namespace" in result
+    assert ".observed.composite.resource.metadata.name" in result
+
+
+def test_format_to_go_printf_spec_field():
+    result = _format_to_go_printf("out-{region}", "mod")
+    assert ".observed.composite.resource.spec.region" in result
 
 
 def test_composition_alb_any_type_uses_tojson(alb_variables, alb_outputs):

@@ -19,10 +19,45 @@ Output files (written by main.py):
   <output_dir>/xrd.yaml           ← xrd.py
 """
 
+import re
 from typing import Any
 
-from tf2crossplane.parser import tf_type_to_go_expr
+from tf2crossplane.parser import module_name_from_url, tf_type_to_go_expr
 from tf2crossplane.settings import Settings
+
+_METADATA_PLACEHOLDERS = {
+    "namespace": ".observed.composite.resource.metadata.namespace",
+    "name": ".observed.composite.resource.metadata.name",
+}
+
+
+def _format_to_go_printf(fmt: str, module_name: str) -> str:
+    """
+    Convert a secret name format string to a Go printf expression.
+
+    Supported placeholders:
+      {module}    - replaced with the literal module name at generation time
+      {namespace} - .observed.composite.resource.metadata.namespace
+      {name}      - .observed.composite.resource.metadata.name
+      {<field>}   - .observed.composite.resource.spec.<field> for any spec field
+
+    Example:
+      "my-secret-{module}-{namespace}-{name}"
+      with module_name="terraform-aws-s3-bucket" →
+      printf "my-secret-terraform-aws-s3-bucket-%s-%s"
+             .observed.composite.resource.metadata.namespace
+             .observed.composite.resource.metadata.name
+    """
+    result = fmt.replace("{module}", module_name)
+    placeholders = re.findall(r"\{(\w+)\}", result)
+    if not placeholders:
+        return f'"{result}"'
+    printf_fmt = re.sub(r"\{(\w+)\}", "%s", result)
+    args = [
+        _METADATA_PLACEHOLDERS.get(p, f".observed.composite.resource.spec.{p}")
+        for p in placeholders
+    ]
+    return f'printf "{printf_fmt}" {" ".join(args)}'
 
 
 class _Literal(str):
@@ -66,6 +101,7 @@ def _build_template(
     provider_config_kind: str = "ProviderConfig",
     workspace_api_version: str = "opentofu.m.upbound.io/v1beta1",
     workspace_source: str = "Remote",
+    secret_name_format: str = "",
 ) -> str:
     """
     Build the Go template string that function-go-templating will render at sync time.
@@ -81,6 +117,9 @@ def _build_template(
     The providerConfig field drives which ProviderConfig the Workspace will use,
     allowing each claim to target a different AWS account / region without changing
     the Composition itself.
+
+    When secret_name_format is provided, a writeConnectionSecretToRef block is
+    added to the Workspace spec with the name rendered from the format string.
     """
     varmap_lines = []
     for var_name, var_def in variables.items():
@@ -99,6 +138,17 @@ def _build_template(
 
     varmap_block = "\n".join(varmap_lines)
 
+    if secret_name_format:
+        module_name = module_name_from_url(module_url)
+        go_expr = _format_to_go_printf(secret_name_format, module_name)
+        secret_block = (
+            f"  writeConnectionSecretToRef:\n"
+            f"    namespace: {{{{ .observed.composite.resource.metadata.namespace }}}}\n"
+            f"    name: {{{{ {go_expr} }}}}\n"
+        )
+    else:
+        secret_block = ""
+
     return f"""\
 apiVersion: {workspace_api_version}
 kind: Workspace
@@ -110,6 +160,7 @@ spec:
   providerConfigRef:
     name: {{{{ .observed.composite.resource.spec.providerConfig }}}}
     kind: {provider_config_kind}
+{secret_block}\
   forProvider:
     source: {workspace_source}
     module: {module_url}
@@ -155,6 +206,7 @@ def generate_composition(
             settings.provider_config_kind,
             settings.workspace_api_version,
             settings.workspace_source,
+            settings.secret_name_format,
         )
     )
 

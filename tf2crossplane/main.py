@@ -95,6 +95,15 @@ from tf2crossplane.xrd import generate_xrd
     show_default=True,
     help="Add a function-auto-ready step to the pipeline to propagate composed resource readiness to the composite",
 )
+@click.option(
+    "--secret-name-format",
+    default="",
+    help=(
+        "Format string for writeConnectionSecretToRef.name. "
+        "Supported placeholders: {module}, {namespace}, {name}, {<spec_field>}. "
+        "Example: 'tf-outputs-{module}-{namespace}-{name}'"
+    ),
+)
 def main(
     module_url: str,
     output_dir: str,
@@ -110,6 +119,7 @@ def main(
     function_auto_ready: str,
     scope: str,
     auto_ready: bool,
+    secret_name_format: str,
 ) -> None:
     """Generate Crossplane XRD + Composition from a Terraform module Git URL."""
 
@@ -131,6 +141,7 @@ def main(
         auto_ready=auto_ready,
         version=version,
         kind=kind,
+        secret_name_format=secret_name_format,
     )
 
     # Derive the Kubernetes kind from the module name (e.g. terraform-aws-s3-bucket → S3Bucket)

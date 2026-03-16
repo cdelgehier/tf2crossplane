@@ -25,6 +25,9 @@ class Settings(BaseModel):
     workspace_source: str = "Remote"
     version: str = "v1alpha1"
     kind: str = ""  # override auto-detected kind; derived from module name if empty
+    secret_name_format: str = (
+        ""  # Go printf format for writeConnectionSecretToRef.name; empty = omit
+    )
 
     @field_validator("group")
     @classmethod
