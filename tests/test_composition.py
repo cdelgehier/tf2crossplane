@@ -143,6 +143,48 @@ def test_format_to_go_printf_spec_field():
     assert ".observed.composite.resource.spec.region" in result
 
 
+def test_provider_config_format_replaces_spec_field(s3_variables, s3_outputs):
+    """--provider-config-format replaces the static spec.providerConfig reference in the template."""
+    settings = Settings(
+        module_url=_settings().module_url,
+        output_dir=".",
+        group="example.crossplane.io",
+        provider_config="my-provider-config",
+        extra_vars=[
+            "target_account:string:AWS account ID",
+            "target_region:string:AWS region",
+        ],
+        provider_config_format="tf-aws-{target_account}-{target_region}",
+    )
+    composition, _, _ = generate_composition(
+        s3_variables, s3_outputs, "S3Bucket", settings.module_url, settings
+    )
+    template = composition["spec"]["pipeline"][0]["input"]["inline"]["template"]
+
+    assert ".observed.composite.resource.spec.providerConfig" not in template
+    assert ".observed.composite.resource.spec.target_account" in template
+    assert ".observed.composite.resource.spec.target_region" in template
+    assert 'printf "tf-aws-%s-%s"' in template
+
+
+def test_provider_config_format_static(s3_variables, s3_outputs):
+    """--provider-config-format with no dynamic placeholders inlines the literal name."""
+    settings = Settings(
+        module_url=_settings().module_url,
+        output_dir=".",
+        group="example.crossplane.io",
+        provider_config="my-provider-config",
+        provider_config_format="tf-aws-prod",
+    )
+    composition, _, _ = generate_composition(
+        s3_variables, s3_outputs, "S3Bucket", settings.module_url, settings
+    )
+    template = composition["spec"]["pipeline"][0]["input"]["inline"]["template"]
+
+    assert ".observed.composite.resource.spec.providerConfig" not in template
+    assert '"tf-aws-prod"' in template
+
+
 def test_composition_alb_any_type_uses_tojson(alb_variables, alb_outputs):
     """${any}-typed variables (listeners, target_groups) must use | toJson in the Go template."""
     url = "git::https://github.com/terraform-aws-modules/terraform-aws-alb.git?ref=v9.13.0"

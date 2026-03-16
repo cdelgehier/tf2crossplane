@@ -114,6 +114,17 @@ from tf2crossplane.xrd import generate_xrd
         "Example: 'tf-outputs-{module}-{namespace}-{name}'"
     ),
 )
+@click.option(
+    "--provider-config-format",
+    default="",
+    help=(
+        "Format string for providerConfigRef.name. When set, the name is computed "
+        "dynamically instead of reading spec.providerConfig from the claim, and the "
+        "providerConfig field is omitted from the XRD. "
+        "Supported placeholders: {module}, {namespace}, {name}, {<spec_field>}. "
+        "Example: 'tf-aws-{target_account}-{target_region}'"
+    ),
+)
 def main(
     module_url: str,
     output_dir: str,
@@ -131,6 +142,7 @@ def main(
     auto_ready: bool,
     extra_vars: tuple[str, ...],
     secret_name_format: str,
+    provider_config_format: str,
 ) -> None:
     """Generate Crossplane XRD + Composition from a Terraform module Git URL."""
 
@@ -154,6 +166,7 @@ def main(
         kind=kind,
         extra_vars=list(extra_vars),
         secret_name_format=secret_name_format,
+        provider_config_format=provider_config_format,
     )
 
     # Derive the Kubernetes kind from the module name (e.g. terraform-aws-s3-bucket → S3Bucket)

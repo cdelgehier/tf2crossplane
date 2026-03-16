@@ -102,6 +102,7 @@ def _build_template(
     workspace_api_version: str = "opentofu.m.upbound.io/v1beta1",
     workspace_source: str = "Remote",
     secret_name_format: str = "",
+    provider_config_format: str = "",
 ) -> str:
     """
     Build the Go template string that function-go-templating will render at sync time.
@@ -120,6 +121,10 @@ def _build_template(
 
     When secret_name_format is provided, a writeConnectionSecretToRef block is
     added to the Workspace spec with the name rendered from the format string.
+
+    When provider_config_format is provided, the providerConfigRef.name is
+    computed dynamically using the same printf mechanism instead of reading
+    spec.providerConfig from the claim.
     """
     varmap_lines = []
     for var_name, var_def in variables.items():
@@ -138,16 +143,23 @@ def _build_template(
 
     varmap_block = "\n".join(varmap_lines)
 
+    module_name = module_name_from_url(module_url)
+
     if secret_name_format:
-        module_name = module_name_from_url(module_url)
-        go_expr = _format_to_go_printf(secret_name_format, module_name)
+        go_secret_expr = _format_to_go_printf(secret_name_format, module_name)
         secret_block = (
             f"  writeConnectionSecretToRef:\n"
             f"    namespace: {{{{ .observed.composite.resource.metadata.namespace }}}}\n"
-            f"    name: {{{{ {go_expr} }}}}\n"
+            f"    name: {{{{ {go_secret_expr} }}}}\n"
         )
     else:
         secret_block = ""
+
+    if provider_config_format:
+        go_pc_expr = _format_to_go_printf(provider_config_format, module_name)
+        provider_config_name = f"{{{{ {go_pc_expr} }}}}"
+    else:
+        provider_config_name = "{{ .observed.composite.resource.spec.providerConfig }}"
 
     return f"""\
 apiVersion: {workspace_api_version}
@@ -158,7 +170,7 @@ metadata:
     gotemplating.fn.crossplane.io/composition-resource-name: workspace
 spec:
   providerConfigRef:
-    name: {{{{ .observed.composite.resource.spec.providerConfig }}}}
+    name: {provider_config_name}
     kind: {provider_config_kind}
 {secret_block}\
   forProvider:
@@ -207,6 +219,7 @@ def generate_composition(
             settings.workspace_api_version,
             settings.workspace_source,
             settings.secret_name_format,
+            settings.provider_config_format,
         )
     )
 

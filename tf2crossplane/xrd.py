@@ -49,13 +49,20 @@ def generate_xrd(
     plural = kind.lower() + "s"
     composite_plural = "x" + plural
 
-    properties: dict[str, Any] = {
-        "providerConfig": {
-            "type": "string",
-            "description": "ProviderConfig to use (e.g. my-provider-config, my-other-provider-config)",
+    # When provider_config_format is set the ProviderConfig name is computed
+    # dynamically from other spec fields; exposing a redundant providerConfig
+    # field in the XRD would be misleading ("which one wins?").
+    if settings.provider_config_format:
+        properties: dict[str, Any] = {}
+        required: list[str] = []
+    else:
+        properties = {
+            "providerConfig": {
+                "type": "string",
+                "description": "ProviderConfig to use (e.g. my-provider-config, my-other-provider-config)",
+            }
         }
-    }
-    required = ["providerConfig"]
+        required = ["providerConfig"]
 
     all_vars = dict(variables)
     for raw in settings.extra_vars:

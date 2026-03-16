@@ -31,6 +31,7 @@ class Settings(BaseModel):
     secret_name_format: str = (
         ""  # Go printf format for writeConnectionSecretToRef.name; empty = omit
     )
+    provider_config_format: str = ""  # Go printf format for providerConfigRef.name; empty = use spec.providerConfig
 
     @field_validator("group")
     @classmethod

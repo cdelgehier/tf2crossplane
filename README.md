@@ -156,6 +156,7 @@ tf2crossplane --module-url <git-url> [OPTIONS]
 | `--auto-ready/--no-auto-ready` | `true` | Append a `function-auto-ready` step to the pipeline so composed resource readiness propagates to the composite. Requires `function-auto-ready` installed on the cluster. |
 | `--extra-var` | *(none)* | Add a field to the XRD spec that does not come from the Terraform module. Can be repeated. See [Extra vars](#extra-vars). |
 | `--secret-name-format` | *(none)* | Generate a `writeConnectionSecretToRef` block in the Workspace with a dynamic name. See [Secret name format](#secret-name-format). |
+| `--provider-config-format` | *(none)* | Compute `providerConfigRef.name` dynamically from spec fields instead of reading `spec.providerConfig`. When set, `providerConfig` is removed from the XRD. See [Provider config format](#provider-config-format). |
 
 ### Extra vars
 
@@ -170,7 +171,7 @@ tf2crossplane \
   --extra-var 'target_account:string:AWS account ID'
 ```
 
-The two extra fields appear in the XRD schema and are marked `required` (no default). They are **not** passed to OpenTofu as Terraform variables, but are available for `--secret-name-format` placeholders.
+The two extra fields appear in the XRD schema and are marked `required` (no default). They are **not** passed to OpenTofu as Terraform variables, but are available for `--secret-name-format` and `--provider-config-format` placeholders.
 
 To make a field optional, add a default as a fourth colon-separated value:
 
@@ -196,6 +197,25 @@ tf2crossplane \
   --module-url '...' \
   --extra-var 'target_region:string:AWS region' \
   --extra-var 'target_account:string:AWS account ID' \
+  --secret-name-format 'tf-outputs-{module}-{namespace}-{name}-{target_account}-{target_region}'
+```
+
+### Provider config format
+
+By default, each claim exposes a `providerConfig` field in its spec so the user can choose which `ProviderConfig` to use. When the ProviderConfig name follows a convention derived from other claim fields (e.g. one ProviderConfig per AWS account × region), `--provider-config-format` lets you encode that convention directly in the Composition.
+
+When `--provider-config-format` is set:
+- `providerConfigRef.name` in the Workspace is computed dynamically at runtime instead of reading `spec.providerConfig`
+- The `providerConfig` field is **removed** from the XRD — it would be misleading to expose a field that has no effect
+
+**Supported placeholders:** same as `--secret-name-format` (`{module}`, `{namespace}`, `{name}`, `{<spec_field>}`)
+
+```bash
+tf2crossplane \
+  --module-url '...' \
+  --extra-var 'target_account:string:AWS account ID' \
+  --extra-var 'target_region:string:AWS region' \
+  --provider-config-format 'tf-aws-{target_account}-{target_region}' \
   --secret-name-format 'tf-outputs-{module}-{namespace}-{name}-{target_account}-{target_region}'
 ```
 

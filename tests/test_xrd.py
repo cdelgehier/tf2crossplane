@@ -207,6 +207,38 @@ def test_parse_extra_var_no_description():
     assert "default" not in var_def
 
 
+def test_xrd_provider_config_format_removes_field(s3_variables, s3_outputs):
+    """When --provider-config-format is set, providerConfig is absent from the XRD."""
+    settings = Settings(
+        module_url="git::https://example.com/module.git",
+        output_dir=".",
+        group="example.crossplane.io",
+        provider_config="my-provider-config",
+        extra_vars=[
+            "target_account:string:AWS account ID",
+            "target_region:string:AWS region",
+        ],
+        provider_config_format="tf-aws-{target_account}-{target_region}",
+    )
+    xrd = generate_xrd(s3_variables, s3_outputs, "S3Bucket", settings)
+    spec = xrd["spec"]["versions"][0]["schema"]["openAPIV3Schema"]["properties"]["spec"]
+
+    assert "providerConfig" not in spec["properties"]
+    assert "providerConfig" not in spec["required"]
+    # extra_vars are still present
+    assert "target_account" in spec["properties"]
+    assert "target_region" in spec["properties"]
+
+
+def test_xrd_provider_config_present_by_default(s3_variables, s3_outputs):
+    """Without --provider-config-format, providerConfig is present and required in the XRD."""
+    xrd = generate_xrd(s3_variables, s3_outputs, "S3Bucket", _settings())
+    spec = xrd["spec"]["versions"][0]["schema"]["openAPIV3Schema"]["properties"]["spec"]
+
+    assert "providerConfig" in spec["properties"]
+    assert "providerConfig" in spec["required"]
+
+
 def test_xrd_alb_types(alb_variables, alb_outputs):
     """list(string), map(string), and ${any} are mapped to the correct OpenAPI schemas."""
     xrd = generate_xrd(
