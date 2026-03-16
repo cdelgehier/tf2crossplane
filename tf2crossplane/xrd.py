@@ -56,7 +56,7 @@ def generate_xrd(
                 "kind": composite_kind,
                 "plural": composite_plural,
             },
-            "defaultCompositionUpdatePolicy": "Manual",
+            "defaultCompositionUpdatePolicy": settings.composition_update_policy,
             "versions": [
                 {
                     "name": settings.version,

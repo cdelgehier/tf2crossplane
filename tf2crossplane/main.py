@@ -51,6 +51,12 @@ from tf2crossplane.xrd import generate_xrd
     show_default=True,
     help="Kind for providerConfigRef (ProviderConfig or ClusterProviderConfig)",
 )
+@click.option(
+    "--composition-update-policy",
+    default="Automatic",
+    show_default=True,
+    help="defaultCompositionUpdatePolicy in the XRD (Automatic or Manual)",
+)
 def main(
     module_url: str,
     output_dir: str,
@@ -59,6 +65,7 @@ def main(
     version: str,
     kind: str,
     provider_config_kind: str,
+    composition_update_policy: str,
 ) -> None:
     """Generate Crossplane XRD + Composition from a Terraform module Git URL."""
 
@@ -71,6 +78,7 @@ def main(
         group=group,
         provider_config=provider_config,
         provider_config_kind=provider_config_kind,
+        composition_update_policy=composition_update_policy,
         version=version,
         kind=kind,
     )

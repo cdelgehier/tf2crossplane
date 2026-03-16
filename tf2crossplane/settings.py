@@ -16,6 +16,7 @@ class Settings(BaseModel):
     group: str
     provider_config: str
     provider_config_kind: str = "ProviderConfig"
+    composition_update_policy: str = "Automatic"
     version: str = "v1alpha1"
     kind: str = ""  # override auto-detected kind; derived from module name if empty
 
