@@ -57,6 +57,12 @@ from tf2crossplane.xrd import generate_xrd
     show_default=True,
     help="defaultCompositionUpdatePolicy in the XRD (Automatic or Manual)",
 )
+@click.option(
+    "--auto-ready/--no-auto-ready",
+    default=True,
+    show_default=True,
+    help="Add a function-auto-ready step to the pipeline to propagate composed resource readiness to the composite",
+)
 def main(
     module_url: str,
     output_dir: str,
@@ -66,6 +72,7 @@ def main(
     kind: str,
     provider_config_kind: str,
     composition_update_policy: str,
+    auto_ready: bool,
 ) -> None:
     """Generate Crossplane XRD + Composition from a Terraform module Git URL."""
 
@@ -79,6 +86,7 @@ def main(
         provider_config=provider_config,
         provider_config_kind=provider_config_kind,
         composition_update_policy=composition_update_policy,
+        auto_ready=auto_ready,
         version=version,
         kind=kind,
     )

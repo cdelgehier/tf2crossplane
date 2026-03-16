@@ -150,6 +150,24 @@ def generate_composition(
         _build_template(variables, module_url, settings.provider_config_kind)
     )
 
+    pipeline: list[dict] = [
+        {
+            "step": "render",
+            "functionRef": {"name": "function-go-templating"},
+            "input": {
+                "apiVersion": "gotemplating.fn.crossplane.io/v1beta1",
+                "kind": "GoTemplate",
+                "source": "Inline",
+                "inline": {"template": template},
+            },
+        }
+    ]
+
+    if settings.auto_ready:
+        pipeline.append(
+            {"step": "auto-ready", "functionRef": {"name": "function-auto-ready"}}
+        )
+
     composition = {
         "apiVersion": "apiextensions.crossplane.io/v1",
         "kind": "Composition",
@@ -162,18 +180,7 @@ def generate_composition(
                 "kind": composite_kind,
             },
             "mode": "Pipeline",
-            "pipeline": [
-                {
-                    "step": "render",
-                    "functionRef": {"name": "function-go-templating"},
-                    "input": {
-                        "apiVersion": "gotemplating.fn.crossplane.io/v1beta1",
-                        "kind": "GoTemplate",
-                        "source": "Inline",
-                        "inline": {"template": template},
-                    },
-                }
-            ],
+            "pipeline": pipeline,
         },
     }
     return composition, _Literal, _literal_representer
