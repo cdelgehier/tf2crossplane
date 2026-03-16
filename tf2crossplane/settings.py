@@ -21,6 +21,7 @@ class Settings(BaseModel):
     scope: str = "Namespaced"
     function_go_templating: str = "function-go-templating"
     function_auto_ready: str = "function-auto-ready"
+    workspace_api_version: str = "opentofu.m.upbound.io/v1beta1"
     version: str = "v1alpha1"
     kind: str = ""  # override auto-detected kind; derived from module name if empty
 

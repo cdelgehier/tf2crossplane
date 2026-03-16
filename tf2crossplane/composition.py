@@ -64,6 +64,7 @@ def _build_template(
     variables: dict[str, Any],
     module_url: str,
     provider_config_kind: str = "ProviderConfig",
+    workspace_api_version: str = "opentofu.m.upbound.io/v1beta1",
 ) -> str:
     """
     Build the Go template string that function-go-templating will render at sync time.
@@ -98,7 +99,7 @@ def _build_template(
     varmap_block = "\n".join(varmap_lines)
 
     return f"""\
-apiVersion: opentofu.m.upbound.io/v1beta1
+apiVersion: {workspace_api_version}
 kind: Workspace
 metadata:
   name: {{{{ .observed.composite.resource.metadata.name }}}}
@@ -147,7 +148,12 @@ def generate_composition(
 
     # _Literal marks the template string so PyYAML renders it with | block style
     template = _Literal(
-        _build_template(variables, module_url, settings.provider_config_kind)
+        _build_template(
+            variables,
+            module_url,
+            settings.provider_config_kind,
+            settings.workspace_api_version,
+        )
     )
 
     pipeline: list[dict] = [

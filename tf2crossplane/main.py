@@ -58,6 +58,12 @@ from tf2crossplane.xrd import generate_xrd
     help="defaultCompositionUpdatePolicy in the XRD (Automatic or Manual)",
 )
 @click.option(
+    "--workspace-api-version",
+    default="opentofu.m.upbound.io/v1beta1",
+    show_default=True,
+    help="apiVersion of the Workspace resource in the generated Composition (e.g. opentofu.m.upbound.io/v1beta1)",
+)
+@click.option(
     "--function-go-templating",
     default="function-go-templating",
     show_default=True,
@@ -91,6 +97,7 @@ def main(
     kind: str,
     provider_config_kind: str,
     composition_update_policy: str,
+    workspace_api_version: str,
     function_go_templating: str,
     function_auto_ready: str,
     scope: str,
@@ -108,6 +115,7 @@ def main(
         provider_config=provider_config,
         provider_config_kind=provider_config_kind,
         composition_update_policy=composition_update_policy,
+        workspace_api_version=workspace_api_version,
         function_go_templating=function_go_templating,
         function_auto_ready=function_auto_ready,
         scope=scope,
