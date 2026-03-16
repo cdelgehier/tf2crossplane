@@ -83,7 +83,17 @@ def _build_template(
     varmap_lines = []
     for var_name, var_def in variables.items():
         expr = tf_type_to_go_expr(var_name, var_def.get("type"))
-        varmap_lines.append(f"      {var_name}: {expr}")
+        if "default" in var_def:
+            # Optional variable: only inject into varmap when the claim sets it.
+            # Without the guard, absent fields render as Go's "<no value>" string,
+            # which OpenTofu rejects as an invalid type (e.g. a bool is required).
+            varmap_lines.append(
+                f'      {{{{- if hasKey .observed.composite.resource.spec "{var_name}" }}}}\n'
+                f"      {var_name}: {expr}\n"
+                "      {{- end }}"
+            )
+        else:
+            varmap_lines.append(f"      {var_name}: {expr}")
 
     varmap_block = "\n".join(varmap_lines)
 
