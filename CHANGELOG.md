@@ -1,3 +1,12 @@
+## v0.7.0 (2026-03-16)
+
+### Feat
+
+- **xrd**: add --extra-var option to inject additional fields into XRD spec
+- **composition**: add --secret-name-format option for writeConnectionSecretToRef
+
+## v0.5.0 (2026-03-16)
+
 ## v0.6.0 (2026-03-16)
 
 ### Feat
