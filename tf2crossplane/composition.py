@@ -153,7 +153,7 @@ def generate_composition(
     pipeline: list[dict] = [
         {
             "step": "render",
-            "functionRef": {"name": "function-go-templating"},
+            "functionRef": {"name": settings.function_go_templating},
             "input": {
                 "apiVersion": "gotemplating.fn.crossplane.io/v1beta1",
                 "kind": "GoTemplate",

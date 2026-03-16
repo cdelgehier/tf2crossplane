@@ -19,6 +19,7 @@ class Settings(BaseModel):
     composition_update_policy: str = "Automatic"
     auto_ready: bool = True
     scope: str = "Namespaced"
+    function_go_templating: str = "function-go-templating"
     version: str = "v1alpha1"
     kind: str = ""  # override auto-detected kind; derived from module name if empty
 

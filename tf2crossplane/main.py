@@ -58,6 +58,12 @@ from tf2crossplane.xrd import generate_xrd
     help="defaultCompositionUpdatePolicy in the XRD (Automatic or Manual)",
 )
 @click.option(
+    "--function-go-templating",
+    default="function-go-templating",
+    show_default=True,
+    help="Name of the function-go-templating Function installed on the cluster",
+)
+@click.option(
     "--scope",
     default="Namespaced",
     show_default=True,
@@ -79,6 +85,7 @@ def main(
     kind: str,
     provider_config_kind: str,
     composition_update_policy: str,
+    function_go_templating: str,
     scope: str,
     auto_ready: bool,
 ) -> None:
@@ -94,6 +101,7 @@ def main(
         provider_config=provider_config,
         provider_config_kind=provider_config_kind,
         composition_update_policy=composition_update_policy,
+        function_go_templating=function_go_templating,
         scope=scope,
         auto_ready=auto_ready,
         version=version,
