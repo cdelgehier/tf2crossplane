@@ -1,3 +1,9 @@
+## v0.5.0 (2026-03-16)
+
+### Feat
+
+- **composition**: add --auto-ready flag and function-auto-ready pipeline step
+
 ## v0.4.0 (2026-03-16)
 
 ### Feat
