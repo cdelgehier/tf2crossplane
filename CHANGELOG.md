@@ -1,3 +1,15 @@
+## v0.6.0 (2026-03-16)
+
+### Feat
+
+- **composition**: add --workspace-source option to override Workspace forProvider.source
+- **composition**: add --workspace-api-version option to override Workspace apiVersion
+- **composition**: add --function-auto-ready option to override function name
+- **composition**: add --function-go-templating option to override function name
+- **xrd**: add --scope option for Namespaced/Cluster XRD scope
+
+## v0.5.0 (2026-03-16)
+
 ## v0.5.1 (2026-03-16)
 
 ### Fix
