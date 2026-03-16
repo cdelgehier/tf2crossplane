@@ -58,6 +58,13 @@ from tf2crossplane.xrd import generate_xrd
     help="defaultCompositionUpdatePolicy in the XRD (Automatic or Manual)",
 )
 @click.option(
+    "--scope",
+    default="Namespaced",
+    show_default=True,
+    type=click.Choice(["Namespaced", "Cluster"], case_sensitive=True),
+    help="Scope of the XRD (Namespaced or Cluster)",
+)
+@click.option(
     "--auto-ready/--no-auto-ready",
     default=True,
     show_default=True,
@@ -72,6 +79,7 @@ def main(
     kind: str,
     provider_config_kind: str,
     composition_update_policy: str,
+    scope: str,
     auto_ready: bool,
 ) -> None:
     """Generate Crossplane XRD + Composition from a Terraform module Git URL."""
@@ -86,6 +94,7 @@ def main(
         provider_config=provider_config,
         provider_config_kind=provider_config_kind,
         composition_update_policy=composition_update_policy,
+        scope=scope,
         auto_ready=auto_ready,
         version=version,
         kind=kind,

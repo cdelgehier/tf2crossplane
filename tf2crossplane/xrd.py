@@ -50,7 +50,7 @@ def generate_xrd(
             "name": f"{composite_plural}.{settings.group}",
         },
         "spec": {
-            "scope": "Namespaced",
+            "scope": settings.scope,
             "group": settings.group,
             "names": {
                 "kind": composite_kind,

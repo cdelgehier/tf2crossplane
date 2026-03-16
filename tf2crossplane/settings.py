@@ -18,6 +18,7 @@ class Settings(BaseModel):
     provider_config_kind: str = "ProviderConfig"
     composition_update_policy: str = "Automatic"
     auto_ready: bool = True
+    scope: str = "Namespaced"
     version: str = "v1alpha1"
     kind: str = ""  # override auto-detected kind; derived from module name if empty
 

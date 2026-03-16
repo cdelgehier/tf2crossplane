@@ -148,6 +148,7 @@ tf2crossplane --module-url <git-url> [OPTIONS]
 | `--provider-config` | `my-provider-config` | Name of the `ProviderConfig` resource on the cluster that holds the cloud credentials (AWS role, GCP SA, …). Injected as the default value for `spec.providerConfig` in the XRD — each claim can override it to target a different account. |
 | `--provider-config-kind` | `ProviderConfig` | Kind for `providerConfigRef` in the generated Workspace. Use `ProviderConfig` for namespace-scoped setups and `ClusterProviderConfig` for cluster-scoped setups. |
 | `--composition-update-policy` | `Automatic` | `defaultCompositionUpdatePolicy` in the XRD. `Automatic` means composites always follow the latest revision; `Manual` lets you control rollout per composite. |
+| `--scope` | `Namespaced` | Scope of the XRD. `Namespaced` (Crossplane v2+) for namespace-scoped composites; `Cluster` for cluster-scoped resources. |
 | `--auto-ready/--no-auto-ready` | `true` | Append a `function-auto-ready` step to the pipeline so composed resource readiness propagates to the composite. Requires `function-auto-ready` installed on the cluster. |
 
 ### Examples
