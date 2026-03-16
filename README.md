@@ -14,13 +14,21 @@ Generate Crossplane **XRD** + **Composition** manifests from a Terraform module 
 Crossplane's [provider-opentofu](https://github.com/upbound/provider-opentofu) lets you drive Terraform modules from Kubernetes. The runtime workflow looks like:
 
 ```mermaid
-flowchart LR
-    Dev(Developer) -->|kubectl apply claim| K8s[Kubernetes]
-    K8s -->|matches XRD| CP[Crossplane]
-    CP -->|runs pipeline| FN[function-go-templating]
-    FN -->|renders| WS[Workspace provider-opentofu]
-    WS -->|executes| TF[Terraform module remote Git]
-    TF -->|provisions| AWS[AWS / GCP / Azure]
+flowchart TB
+    subgraph top [ ]
+        direction LR
+        Dev(Developer) -->|kubectl apply claim| K8s[Kubernetes]
+        K8s -->|matches XRD| CP[Crossplane]
+        CP -->|runs pipeline| FN[function-go-templating]
+    end
+    subgraph bottom [ ]
+        direction RL
+        WS[Workspace provider-opentofu] -->|executes| TF[Terraform module remote Git]
+        TF -->|provisions| AWS[AWS / GCP / Azure]
+    end
+    FN -->|renders| WS
+    style top fill:none,stroke:none
+    style bottom fill:none,stroke:none
 ```
 
 But writing a `CompositeResourceDefinition` and a `Composition` by hand for each module is tedious:
