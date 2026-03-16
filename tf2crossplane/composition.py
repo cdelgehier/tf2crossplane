@@ -165,7 +165,10 @@ def generate_composition(
 
     if settings.auto_ready:
         pipeline.append(
-            {"step": "auto-ready", "functionRef": {"name": "function-auto-ready"}}
+            {
+                "step": "auto-ready",
+                "functionRef": {"name": settings.function_auto_ready},
+            }
         )
 
     composition = {

@@ -150,6 +150,7 @@ tf2crossplane --module-url <git-url> [OPTIONS]
 | `--composition-update-policy` | `Automatic` | `defaultCompositionUpdatePolicy` in the XRD. `Automatic` means composites always follow the latest revision; `Manual` lets you control rollout per composite. |
 | `--scope` | `Namespaced` | Scope of the XRD. `Namespaced` (Crossplane v2+) for namespace-scoped composites; `Cluster` for cluster-scoped resources. |
 | `--function-go-templating` | `function-go-templating` | Name of the `function-go-templating` Function installed on the cluster. Override if installed under a different name (e.g. `upbound-function-go-templating`). |
+| `--function-auto-ready` | `function-auto-ready` | Name of the `function-auto-ready` Function installed on the cluster. Override if installed under a different name. Only used when `--auto-ready` is set. |
 | `--auto-ready/--no-auto-ready` | `true` | Append a `function-auto-ready` step to the pipeline so composed resource readiness propagates to the composite. Requires `function-auto-ready` installed on the cluster. |
 
 ### Examples

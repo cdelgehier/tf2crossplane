@@ -64,6 +64,12 @@ from tf2crossplane.xrd import generate_xrd
     help="Name of the function-go-templating Function installed on the cluster",
 )
 @click.option(
+    "--function-auto-ready",
+    default="function-auto-ready",
+    show_default=True,
+    help="Name of the function-auto-ready Function installed on the cluster",
+)
+@click.option(
     "--scope",
     default="Namespaced",
     show_default=True,
@@ -86,6 +92,7 @@ def main(
     provider_config_kind: str,
     composition_update_policy: str,
     function_go_templating: str,
+    function_auto_ready: str,
     scope: str,
     auto_ready: bool,
 ) -> None:
@@ -102,6 +109,7 @@ def main(
         provider_config_kind=provider_config_kind,
         composition_update_policy=composition_update_policy,
         function_go_templating=function_go_templating,
+        function_auto_ready=function_auto_ready,
         scope=scope,
         auto_ready=auto_ready,
         version=version,
