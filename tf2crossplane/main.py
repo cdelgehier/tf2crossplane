@@ -58,6 +58,13 @@ from tf2crossplane.xrd import generate_xrd
     help="defaultCompositionUpdatePolicy in the XRD (Automatic or Manual)",
 )
 @click.option(
+    "--workspace-source",
+    default="Remote",
+    show_default=True,
+    type=click.Choice(["Remote", "Inline", "Module"], case_sensitive=True),
+    help="source field of the Workspace forProvider (Remote, Inline, or Module)",
+)
+@click.option(
     "--workspace-api-version",
     default="opentofu.m.upbound.io/v1beta1",
     show_default=True,
@@ -97,6 +104,7 @@ def main(
     kind: str,
     provider_config_kind: str,
     composition_update_policy: str,
+    workspace_source: str,
     workspace_api_version: str,
     function_go_templating: str,
     function_auto_ready: str,
@@ -115,6 +123,7 @@ def main(
         provider_config=provider_config,
         provider_config_kind=provider_config_kind,
         composition_update_policy=composition_update_policy,
+        workspace_source=workspace_source,
         workspace_api_version=workspace_api_version,
         function_go_templating=function_go_templating,
         function_auto_ready=function_auto_ready,

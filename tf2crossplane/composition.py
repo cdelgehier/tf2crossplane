@@ -65,6 +65,7 @@ def _build_template(
     module_url: str,
     provider_config_kind: str = "ProviderConfig",
     workspace_api_version: str = "opentofu.m.upbound.io/v1beta1",
+    workspace_source: str = "Remote",
 ) -> str:
     """
     Build the Go template string that function-go-templating will render at sync time.
@@ -110,7 +111,7 @@ spec:
     name: {{{{ .observed.composite.resource.spec.providerConfig }}}}
     kind: {provider_config_kind}
   forProvider:
-    source: Remote
+    source: {workspace_source}
     module: {module_url}
     varmap:
 {varmap_block}
@@ -153,6 +154,7 @@ def generate_composition(
             module_url,
             settings.provider_config_kind,
             settings.workspace_api_version,
+            settings.workspace_source,
         )
     )
 
