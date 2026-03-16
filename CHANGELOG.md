@@ -1,3 +1,9 @@
+## v0.5.1 (2026-03-16)
+
+### Fix
+
+- **ci**: sync uv.lock after version bump in bump-version workflow
+
 ## v0.5.0 (2026-03-16)
 
 ### Feat
