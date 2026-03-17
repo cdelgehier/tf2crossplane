@@ -30,6 +30,29 @@ def _parse_extra_var(raw: str) -> tuple[str, dict[str, Any]]:
     return name, var_def
 
 
+_COMPLEX_OUTPUT_HINTS = ("map", "object", "list", "set")
+
+
+def _output_schema(out_def: dict[str, Any]) -> dict[str, Any]:
+    """
+    Return an OpenAPI schema fragment for a Terraform output.
+
+    Terraform outputs have no type declaration, so we fall back to string.
+    When the description hints at a complex type (map, object, list, set) we
+    use x-kubernetes-preserve-unknown-fields instead to avoid validation
+    errors when OpenTofu returns a non-string value at runtime.
+    """
+    raw_desc = out_def.get("description", "")
+    description = raw_desc[0] if isinstance(raw_desc, list) else raw_desc
+    desc_lower = description.lower()
+    if any(hint in desc_lower for hint in _COMPLEX_OUTPUT_HINTS):
+        return {
+            "x-kubernetes-preserve-unknown-fields": True,
+            "description": description,
+        }
+    return {"type": "string", "description": description}
+
+
 def generate_xrd(
     variables: dict[str, Any],
     outputs: dict[str, Any],
@@ -122,23 +145,9 @@ def generate_xrd(
                                                     "type": "object",
                                                     "x-kubernetes-preserve-unknown-fields": True,
                                                     "properties": {
-                                                        out_name: {
-                                                            "type": "string",
-                                                            "description": (
-                                                                out_def.get(
-                                                                    "description", [""]
-                                                                )[0]
-                                                                if isinstance(
-                                                                    out_def.get(
-                                                                        "description"
-                                                                    ),
-                                                                    list,
-                                                                )
-                                                                else out_def.get(
-                                                                    "description", ""
-                                                                )
-                                                            ),
-                                                        }
+                                                        out_name: _output_schema(
+                                                            out_def
+                                                        )
                                                         for out_name, out_def in outputs.items()
                                                     },
                                                 }
