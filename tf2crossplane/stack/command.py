@@ -35,19 +35,30 @@ def _parse_wire_flag(raw: str) -> WireDef:
 
 
 def _settings_from_file(stack_file: Path) -> StackSettings:
-    """Load StackSettings from a *.stack.yaml definition file."""
+    """Load StackSettings from a *.stack.yaml definition file.
+
+    Relative paths for xrd_dir and output_dir are resolved relative to the
+    directory containing the stack file, not the current working directory.
+    """
+    stack_file = stack_file.resolve()
+    base_dir = stack_file.parent
+
     with open(stack_file) as f:
         data = yaml.safe_load(f)
 
     resources = [ResourceDef(**r) for r in data.get("resources", [])]
     wires = [WireDef(**w) for w in data.get("wires", [])]
 
+    def _resolve(raw: str) -> Path:
+        p = Path(raw)
+        return p if p.is_absolute() else (base_dir / p).resolve()
+
     return StackSettings(
         name=data["name"],
         group=data["group"],
         version=data.get("version", "v1alpha1"),
-        xrd_dir=Path(data.get("xrd_dir", ".")),
-        output_dir=Path(data.get("output_dir", ".")),
+        xrd_dir=_resolve(data.get("xrd_dir", ".")),
+        output_dir=_resolve(data.get("output_dir", ".")),
         resources=resources,
         wires=wires,
         function_go_templating=data.get(
