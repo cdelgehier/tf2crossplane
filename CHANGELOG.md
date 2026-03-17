@@ -1,3 +1,21 @@
+## v0.11.0 (2026-03-17)
+
+### Feat
+
+- **stack**: add static wire support for injecting literal values
+- **stack**: support nested wire targets for object fields
+
+### Fix
+
+- **examples**: add create_security_group=false wire, fix port strings, document static wires
+- **xrd**: always use x-kubernetes-preserve-unknown-fields for all outputs
+- **xrd**: use x-kubernetes-preserve-unknown-fields for complex outputs
+- **stack**: use RFC 1123-compliant slug for composed resource metadata.name
+- **stack**: render array-typed wire targets as YAML lists
+- **infra**: strip X prefix from --kind to prevent double-X kinds
+
+## v0.5.0 (2026-03-17)
+
 ## v0.10.0 (2026-03-17)
 
 ### Feat
