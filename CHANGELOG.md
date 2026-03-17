@@ -1,3 +1,15 @@
+## v0.9.0 (2026-03-17)
+
+### Feat
+
+- **examples**: add stackiams3 and stackec2iams3 self-contained examples
+
+### Fix
+
+- **stack**: forward exposed spec fields from Stack XR to composed XRs
+
+## v0.5.0 (2026-03-17)
+
 ## v0.8.1 (2026-03-17)
 
 ### Fix
