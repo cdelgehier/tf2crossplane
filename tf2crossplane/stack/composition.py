@@ -1,7 +1,7 @@
 """Generate the Composition for a Stack (Composition of Compositions)."""
 
 from tf2crossplane.settings import ResourceDef, StackSettings, WireDef
-from tf2crossplane.stack.reader import xrd_group, xrd_kind
+from tf2crossplane.stack.reader import xrd_group, xrd_kind, xrd_spec_properties
 from tf2crossplane.stack.xrd import _composite_kind, _plural, _to_camel
 
 
@@ -58,6 +58,35 @@ def _resource_block(
 
     inbound = ("\n" + "\n".join(inbound_lines)) if inbound_lines else ""
 
+    # Build forwarded spec fields: exposed fields passed from Stack XR → composed XR spec.
+    # Skip fields already set by inbound wires.
+    infra_props = xrd_spec_properties(infra_xrd) if infra_xrd else {}
+    wire_target_fields = {
+        wire.target.split(".", 1)[1] if "." in wire.target else wire.target
+        for wire in wires_to
+    }
+    skip = {"providerConfig", "writeConnectionSecretToRef", "existingId", "import"}
+    if resource.expose:
+        fields_to_forward = [f for f in resource.expose if f not in wire_target_fields]
+    else:
+        fields_to_forward = [
+            f for f in infra_props if f not in skip | wire_target_fields
+        ]
+
+    forward_lines = []
+    for field in fields_to_forward:
+        field_type = infra_props.get(field, {}).get("type", "string")
+        ref = f".observed.composite.resource.spec.{res_name}.{field}"
+        if field_type in ("object", "array"):
+            forward_lines.append(
+                f"{{{{- if {ref} }}}}\n  {field}:{{{{ {ref} | toYaml | nindent 4 }}}}\n{{{{- end }}}}"
+            )
+        else:
+            forward_lines.append(
+                f"{{{{- if {ref} }}}}\n  {field}: {{{{ {ref} }}}}\n{{{{- end }}}}"
+            )
+    forward = ("\n" + "\n".join(forward_lines)) if forward_lines else ""
+
     if resource.optional:
         block = f"""\
 {{{{- if and (not .observed.composite.resource.spec.{res_name}.existingId) (not .observed.composite.resource.spec.{res_name}.import) }}}}
@@ -70,7 +99,7 @@ metadata:
   annotations:
     gotemplating.fn.crossplane.io/composition-resource-name: {res_name}
 spec:
-  providerConfig: {{{{ .observed.composite.resource.spec.providerConfig }}}}{inbound}
+  providerConfig: {{{{ .observed.composite.resource.spec.providerConfig }}}}{inbound}{forward}
 {{{{- else if .observed.composite.resource.spec.{res_name}.import }}}}
 ---
 apiVersion: {res_group}/{version}
@@ -82,7 +111,7 @@ metadata:
     gotemplating.fn.crossplane.io/composition-resource-name: {res_name}
 spec:
   providerConfig: {{{{ .observed.composite.resource.spec.providerConfig }}}}
-  import: {{{{ .observed.composite.resource.spec.{res_name}.import }}}}
+  import: {{{{ .observed.composite.resource.spec.{res_name}.import }}}}{forward}
 {{{{- end }}}}"""
     else:
         block = f"""\
@@ -95,7 +124,7 @@ metadata:
   annotations:
     gotemplating.fn.crossplane.io/composition-resource-name: {res_name}
 spec:
-  providerConfig: {{{{ .observed.composite.resource.spec.providerConfig }}}}{inbound}"""
+  providerConfig: {{{{ .observed.composite.resource.spec.providerConfig }}}}{inbound}{forward}"""
 
     return block
 

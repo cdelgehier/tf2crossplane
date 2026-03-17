@@ -32,7 +32,7 @@ def xrd_spec_properties(xrd: dict) -> dict:
         versions = xrd["spec"]["versions"]
         schema = versions[0]["schema"]["openAPIV3Schema"]
         return schema["properties"]["spec"]["properties"]
-    except KeyError, IndexError:
+    except (KeyError, IndexError):
         return {}
 
 
