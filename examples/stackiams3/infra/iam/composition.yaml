@@ -120,6 +120,50 @@ spec:
                 {{- if hasKey .observed.composite.resource.spec "create_instance_profile" }}
                 create_instance_profile: {{ index .observed.composite.resource.spec "create_instance_profile" }}
                 {{- end }}
+  - step: patch-outputs
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
+      - name: workspace
+        patches:
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.name
+          toFieldPath: status.atProvider.outputs.name
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.arn
+          toFieldPath: status.atProvider.outputs.arn
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.unique_id
+          toFieldPath: status.atProvider.outputs.unique_id
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.instance_profile_arn
+          toFieldPath: status.atProvider.outputs.instance_profile_arn
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.instance_profile_id
+          toFieldPath: status.atProvider.outputs.instance_profile_id
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.instance_profile_name
+          toFieldPath: status.atProvider.outputs.instance_profile_name
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.instance_profile_unique_id
+          toFieldPath: status.atProvider.outputs.instance_profile_unique_id
+          policy:
+            fromFieldPath: Optional
   - step: auto-ready
     functionRef:
       name: function-auto-ready

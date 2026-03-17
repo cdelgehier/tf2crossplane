@@ -169,6 +169,34 @@ spec:
           status:
             type: object
             properties:
-              outputs:
+              atProvider:
                 type: object
-                x-kubernetes-preserve-unknown-fields: true
+                properties:
+                  outputs:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                    properties:
+                      name:
+                        type: string
+                        description: The name of the IAM role
+                      arn:
+                        type: string
+                        description: The Amazon Resource Name (ARN) specifying the
+                          IAM role
+                      unique_id:
+                        type: string
+                        description: Stable and unique string identifying the IAM
+                          role
+                      instance_profile_arn:
+                        type: string
+                        description: ARN assigned by AWS to the instance profile
+                      instance_profile_id:
+                        type: string
+                        description: Instance profile's ID
+                      instance_profile_name:
+                        type: string
+                        description: Name of IAM instance profile
+                      instance_profile_unique_id:
+                        type: string
+                        description: Stable and unique string identifying the IAM
+                          instance profile

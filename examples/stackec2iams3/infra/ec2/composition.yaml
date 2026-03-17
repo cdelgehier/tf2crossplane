@@ -273,6 +273,165 @@ spec:
                 {{- if hasKey .observed.composite.resource.spec "putin_khuylo" }}
                 putin_khuylo: {{ index .observed.composite.resource.spec "putin_khuylo" }}
                 {{- end }}
+  - step: patch-outputs
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
+      - name: workspace
+        patches:
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.id
+          toFieldPath: status.atProvider.outputs.id
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.arn
+          toFieldPath: status.atProvider.outputs.arn
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.capacity_reservation_specification
+          toFieldPath: status.atProvider.outputs.capacity_reservation_specification
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.instance_state
+          toFieldPath: status.atProvider.outputs.instance_state
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.outpost_arn
+          toFieldPath: status.atProvider.outputs.outpost_arn
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.password_data
+          toFieldPath: status.atProvider.outputs.password_data
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.primary_network_interface_id
+          toFieldPath: status.atProvider.outputs.primary_network_interface_id
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.private_dns
+          toFieldPath: status.atProvider.outputs.private_dns
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.public_dns
+          toFieldPath: status.atProvider.outputs.public_dns
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.public_ip
+          toFieldPath: status.atProvider.outputs.public_ip
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.private_ip
+          toFieldPath: status.atProvider.outputs.private_ip
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.ipv6_addresses
+          toFieldPath: status.atProvider.outputs.ipv6_addresses
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.tags_all
+          toFieldPath: status.atProvider.outputs.tags_all
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.spot_bid_status
+          toFieldPath: status.atProvider.outputs.spot_bid_status
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.spot_request_state
+          toFieldPath: status.atProvider.outputs.spot_request_state
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.spot_instance_id
+          toFieldPath: status.atProvider.outputs.spot_instance_id
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.ami
+          toFieldPath: status.atProvider.outputs.ami
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.availability_zone
+          toFieldPath: status.atProvider.outputs.availability_zone
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.ebs_volumes
+          toFieldPath: status.atProvider.outputs.ebs_volumes
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.iam_role_name
+          toFieldPath: status.atProvider.outputs.iam_role_name
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.iam_role_arn
+          toFieldPath: status.atProvider.outputs.iam_role_arn
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.iam_role_unique_id
+          toFieldPath: status.atProvider.outputs.iam_role_unique_id
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.iam_instance_profile_arn
+          toFieldPath: status.atProvider.outputs.iam_instance_profile_arn
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.iam_instance_profile_id
+          toFieldPath: status.atProvider.outputs.iam_instance_profile_id
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.iam_instance_profile_unique
+          toFieldPath: status.atProvider.outputs.iam_instance_profile_unique
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.root_block_device
+          toFieldPath: status.atProvider.outputs.root_block_device
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.ebs_block_device
+          toFieldPath: status.atProvider.outputs.ebs_block_device
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.ephemeral_block_device
+          toFieldPath: status.atProvider.outputs.ephemeral_block_device
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.security_group_arn
+          toFieldPath: status.atProvider.outputs.security_group_arn
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.security_group_id
+          toFieldPath: status.atProvider.outputs.security_group_id
+          policy:
+            fromFieldPath: Optional
   - step: auto-ready
     functionRef:
       name: function-auto-ready

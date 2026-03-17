@@ -216,6 +216,75 @@ spec:
                 {{- if hasKey .observed.composite.resource.spec "putin_khuylo" }}
                 putin_khuylo: {{ index .observed.composite.resource.spec "putin_khuylo" }}
                 {{- end }}
+  - step: patch-outputs
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
+      - name: workspace
+        patches:
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.s3_bucket_id
+          toFieldPath: status.atProvider.outputs.s3_bucket_id
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.s3_bucket_arn
+          toFieldPath: status.atProvider.outputs.s3_bucket_arn
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.s3_bucket_bucket_domain_name
+          toFieldPath: status.atProvider.outputs.s3_bucket_bucket_domain_name
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.s3_bucket_bucket_regional_domain_name
+          toFieldPath: status.atProvider.outputs.s3_bucket_bucket_regional_domain_name
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.s3_bucket_hosted_zone_id
+          toFieldPath: status.atProvider.outputs.s3_bucket_hosted_zone_id
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.s3_bucket_lifecycle_configuration_rules
+          toFieldPath: status.atProvider.outputs.s3_bucket_lifecycle_configuration_rules
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.s3_bucket_policy
+          toFieldPath: status.atProvider.outputs.s3_bucket_policy
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.s3_bucket_region
+          toFieldPath: status.atProvider.outputs.s3_bucket_region
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.s3_bucket_website_endpoint
+          toFieldPath: status.atProvider.outputs.s3_bucket_website_endpoint
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.s3_bucket_website_domain
+          toFieldPath: status.atProvider.outputs.s3_bucket_website_domain
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.s3_directory_bucket_name
+          toFieldPath: status.atProvider.outputs.s3_directory_bucket_name
+          policy:
+            fromFieldPath: Optional
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.outputs.s3_directory_bucket_arn
+          toFieldPath: status.atProvider.outputs.s3_directory_bucket_arn
+          policy:
+            fromFieldPath: Optional
   - step: auto-ready
     functionRef:
       name: function-auto-ready
