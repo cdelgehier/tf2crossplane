@@ -18,6 +18,7 @@ class Settings(BaseModel):
     scope: str = "Namespaced"
     function_go_templating: str = "function-go-templating"
     function_auto_ready: str = "function-auto-ready"
+    function_patch_and_transform: str = "function-patch-and-transform"
     workspace_api_version: str = "opentofu.m.upbound.io/v1beta1"
     workspace_source: str = "Remote"
     version: str = "v1alpha1"

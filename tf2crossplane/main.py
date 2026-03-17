@@ -88,6 +88,12 @@ def cli() -> None:
     help="Name of the function-auto-ready Function installed on the cluster",
 )
 @click.option(
+    "--function-patch-and-transform",
+    default="function-patch-and-transform",
+    show_default=True,
+    help="Name of the function-patch-and-transform Function installed on the cluster",
+)
+@click.option(
     "--scope",
     default="Namespaced",
     show_default=True,
@@ -140,6 +146,7 @@ def infra(
     workspace_api_version: str,
     function_go_templating: str,
     function_auto_ready: str,
+    function_patch_and_transform: str,
     scope: str,
     auto_ready: bool,
     extra_vars: tuple[str, ...],
@@ -158,6 +165,7 @@ def infra(
         workspace_api_version=workspace_api_version,
         function_go_templating=function_go_templating,
         function_auto_ready=function_auto_ready,
+        function_patch_and_transform=function_patch_and_transform,
         scope=scope,
         auto_ready=auto_ready,
         version=version,
