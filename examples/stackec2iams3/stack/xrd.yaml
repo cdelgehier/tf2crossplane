@@ -35,10 +35,6 @@ spec:
                     type: string
                     description: SSM parameter name for the AMI ID. For Amazon Linux
                       AMI SSM parameters see [reference](https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-public-parameters-ami.html)
-                  iam_instance_profile:
-                    type: string
-                    description: IAM Instance Profile to launch the instance with.
-                      Specified as the name of the Instance Profile
                   instance_type:
                     type: string
                     description: The type of instance to start
@@ -90,3 +86,9 @@ spec:
                     type: string
                     description: Cloud-native identifier of a pre-existing iam to
                       adopt. Crossplane will manage it going forward.
+          status:
+            type: object
+            properties:
+              iamInstanceProfileName:
+                type: string
+                description: 'Resolved output: iam.outputs.instance_profile_name'

@@ -1,0 +1,20 @@
+apiVersion: homelab.crossplane.io/v1alpha1
+kind: XS3Bucket
+metadata:
+  name: my-bucket
+  namespace: crossplane-system
+spec:
+  # No providerConfig field — computed as "aws-{target_account}-{target_region}" at render time
+  # Requires ProviderConfig: aws-123456789012-eu-west-1
+
+  target_account: "123456789012"  # drives providerConfigRef.name
+  target_region: eu-west-1        # drives providerConfigRef.name (default: eu-west-1)
+
+  bucket: my-bucket-2026
+  force_destroy: false
+  tags:
+    env: production
+    managedBy: crossplane
+
+  # Connection credentials will be written to secret "my-bucket-s3-creds"
+  # in the same namespace (driven by secret_name_format: {name}-s3-creds)
