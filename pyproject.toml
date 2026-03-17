@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.scripts]
-tf2crossplane = "tf2crossplane.main:main"
+tf2crossplane = "tf2crossplane.main:cli"
 
 [tool.commitizen]
 name = "cz_conventional_commits"

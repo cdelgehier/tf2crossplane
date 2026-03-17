@@ -1,5 +1,5 @@
+from tf2crossplane.infra.xrd import _parse_extra_var, generate_xrd
 from tf2crossplane.settings import Settings
-from tf2crossplane.xrd import _parse_extra_var, generate_xrd
 
 
 def test_xrd_structure(s3_variables, s3_outputs):

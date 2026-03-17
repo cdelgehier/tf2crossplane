@@ -7,7 +7,14 @@
 
 # tf2crossplane
 
-Generate Crossplane **XRD** + **Composition** manifests from a Terraform module Git URL — no manual YAML writing.
+Generate Crossplane **XRD** + **Composition** manifests from Terraform modules — no manual YAML writing.
+
+Two subcommands cover the full Crossplane platform engineering workflow:
+
+| Subcommand | Input | Output |
+|---|---|---|
+| `infra` | Terraform module Git URL | XRD + Composition → 1 Workspace (provider-opentofu) |
+| `stack` | XRD YAML files + wiring definition | XRD + Composition → N Infra XRs (Composition of Compositions) |
 
 ## The problem
 
@@ -34,97 +41,10 @@ flowchart TB
 But writing a `CompositeResourceDefinition` and a `Composition` by hand for each module is tedious:
 
 - parse every `variable {}` block in the module
-- translate each Terraform type (`string`, `list(object(...))`, …) to an OpenAPI v3 schema fragment (required by Kubernetes CRD validation)
+- translate each Terraform type (`string`, `list(object(...))`, …) to an OpenAPI v3 schema fragment
 - wire each variable to its Go template expression in the `varmap`
 
 For a module with 90 variables this is hundreds of lines of error-prone boilerplate. `tf2crossplane` automates all of it.
-
-```mermaid
-flowchart LR
-    URL[Git URL + ref] --> TFC[tf2crossplane]
-    TFC -->|clone + parse| VARS[variables.tf outputs.tf]
-    VARS --> TFC
-    TFC -->|generate| XRD[xrd.yaml CompositeResourceDefinition]
-    TFC -->|generate| COMP[composition.yaml Composition]
-```
-
-## What it generates
-
-Given a module URL, `tf2crossplane` produces two files:
-
-| File | Content |
-|------|---------|
-| `xrd.yaml` | `CompositeResourceDefinition` — declares the API (group, kind, schema) |
-| `composition.yaml` | `Composition` — pipeline step using `function-go-templating` to render a `Workspace` |
-
-The generated `Composition` uses [`function-go-templating`](https://github.com/crossplane-contrib/function-go-templating) (not patch-and-transform), which produces compact and readable output.
-
-## Prerequisites
-
-On the Crossplane cluster:
-
-- `provider-opentofu` installed and a `ProviderConfig` configured
-- `function-go-templating` installed
-
-## Getting started
-
-This walkthrough generates a Crossplane API for the [terraform-aws-alb](https://github.com/terraform-aws-modules/terraform-aws-alb) module and deploys an Application Load Balancer with a single claim.
-
-### 1. Generate the manifests
-
-```bash
-tf2crossplane \
-  --module-url 'git::https://github.com/terraform-aws-modules/terraform-aws-alb.git?ref=v9.13.0' \
-  --output-dir out/alb/ \
-  --group platform.example.io \
-  --kind ApplicationLoadBalancer \
-  --provider-config aws-prod
-```
-
-Output:
-```
-out/alb/
-├── xrd.yaml          # CompositeResourceDefinition (46 variables, 11 outputs)
-└── composition.yaml  # Composition (function-go-templating pipeline)
-```
-
-### 2. Install the API on your cluster
-
-```bash
-kubectl apply -f out/alb/xrd.yaml
-kubectl apply -f out/alb/composition.yaml
-```
-
-### 3. Create a claim
-
-```yaml
-# alb-claim.yaml
-apiVersion: platform.example.io/v1alpha1
-kind: ApplicationLoadBalancer
-metadata:
-  name: my-alb
-  namespace: my-team
-spec:
-  providerConfig: aws-prod
-  name: my-alb
-  vpc_id: vpc-0abc1234def56789
-  subnets:
-    - subnet-0aaaa111
-    - subnet-0bbbb222
-  load_balancer_type: application
-  internal: false
-  enable_deletion_protection: false
-  tags:
-    env: staging
-    team: my-team
-```
-
-```bash
-kubectl apply -f alb-claim.yaml
-kubectl get applicationloadbalancer my-alb -n my-team
-```
-
-Crossplane will reconcile the claim → run the Composition → execute the Terraform module → provision the ALB on AWS.
 
 ## Installation
 
@@ -140,190 +60,376 @@ cd tf2crossplane
 uv sync
 ```
 
-## Usage
+---
+
+## `infra` — Generate from a Terraform module
+
+### What it generates
+
+Given a module URL, `tf2crossplane infra` produces two files:
+
+| File | Content |
+|------|---------|
+| `xrd.yaml` | `CompositeResourceDefinition` — declares the API (group, kind, schema) |
+| `composition.yaml` | `Composition` — pipeline using `function-go-templating` to render a `Workspace` |
+
+```mermaid
+flowchart LR
+    URL[Git URL + ref] --> TFC[tf2crossplane infra]
+    TFC -->|clone + parse| VARS[variables.tf outputs.tf]
+    VARS --> TFC
+    TFC -->|generate| XRD[xrd.yaml]
+    TFC -->|generate| COMP[composition.yaml]
+```
+
+### Prerequisites
+
+- Crossplane **v2** (XRDs use `apiextensions.crossplane.io/v2`, scope `Namespaced` by default)
+- `provider-opentofu` installed with a `ProviderConfig` configured
+- `function-go-templating` installed
+
+> **Crossplane v2 note** — generated XRDs include a `defaultCompositionRef` pointing to the generated Composition. Users create XRs directly (no separate Claim object in v2). If the XR stays `SYNCED=<empty>` after apply, restart the Crossplane pod once to refresh watches: `kubectl rollout restart deployment/crossplane -n crossplane-system`.
+
+### Getting started
+
+```bash
+tf2crossplane infra \
+  --module-url 'git::https://github.com/terraform-aws-modules/terraform-aws-alb.git?ref=v9.13.0' \
+  --output-dir out/alb/ \
+  --group platform.example.io \
+  --kind ApplicationLoadBalancer \
+  --provider-config aws-prod
+```
+
+Output:
+```
+out/alb/
+├── xrd.yaml          # CompositeResourceDefinition (46 variables, 11 outputs)
+└── composition.yaml  # Composition (function-go-templating pipeline)
+```
+
+```bash
+kubectl apply -f out/alb/xrd.yaml
+kubectl apply -f out/alb/composition.yaml
+```
+
+XR (Crossplane v2 — create the composite resource directly, no separate Claim object):
+```yaml
+apiVersion: platform.example.io/v1alpha1
+kind: XApplicationLoadBalancer
+metadata:
+  name: my-alb
+  namespace: my-team
+spec:
+  providerConfig: aws-prod
+  name: my-alb
+  vpc_id: vpc-0abc1234def56789
+  subnets:
+    - subnet-0aaaa111
+    - subnet-0bbbb222
+```
+
+### Options
 
 ```
-tf2crossplane --module-url <git-url> [OPTIONS]
+tf2crossplane infra --module-url <git-url> [OPTIONS]
 ```
 
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--module-url` | *(required)* | Git URL of the Terraform module, with `?ref=` |
 | `--output-dir` | `.` | Directory where `xrd.yaml` and `composition.yaml` are written |
-| `--group` | `example.crossplane.io` | Crossplane API group — a reverse-DNS domain that namespaces your API (e.g. `platform.mycompany.com`). Pick one per platform, not per module. |
+| `--group` | `example.crossplane.io` | Crossplane API group |
 | `--version` | `v1alpha1` | API version |
 | `--kind` | *(auto-detected)* | Override the CamelCase kind (e.g. `S3Bucket`) |
-| `--provider-config` | `my-provider-config` | Name of the `ProviderConfig` resource on the cluster that holds the cloud credentials (AWS role, GCP SA, …). Injected as the default value for `spec.providerConfig` in the XRD — each claim can override it to target a different account. |
-| `--provider-config-kind` | `ProviderConfig` | Kind for `providerConfigRef` in the generated Workspace. Use `ProviderConfig` for namespace-scoped setups and `ClusterProviderConfig` for cluster-scoped setups. |
-| `--composition-update-policy` | `Automatic` | `defaultCompositionUpdatePolicy` in the XRD. `Automatic` means composites always follow the latest revision; `Manual` lets you control rollout per composite. |
-| `--scope` | `Namespaced` | Scope of the XRD. `Namespaced` (Crossplane v2+) for namespace-scoped composites; `Cluster` for cluster-scoped resources. |
-| `--workspace-source` | `Remote` | `source` field of the Workspace `forProvider`. `Remote` fetches the module from Git; `Module` uses a pre-bundled module; `Inline` embeds HCL directly. |
-| `--workspace-api-version` | `opentofu.m.upbound.io/v1beta1` | `apiVersion` of the `Workspace` resource in the generated Composition. Change to `v1` when the provider graduates to GA. |
-| `--function-go-templating` | `function-go-templating` | Name of the `function-go-templating` Function installed on the cluster. Override if installed under a different name (e.g. `upbound-function-go-templating`). |
-| `--function-auto-ready` | `function-auto-ready` | Name of the `function-auto-ready` Function installed on the cluster. Override if installed under a different name. Only used when `--auto-ready` is set. |
-| `--auto-ready/--no-auto-ready` | `true` | Append a `function-auto-ready` step to the pipeline so composed resource readiness propagates to the composite. Requires `function-auto-ready` installed on the cluster. |
-| `--extra-var` | *(none)* | Add a field to the XRD spec that does not come from the Terraform module. Can be repeated. See [Extra vars](#extra-vars). |
-| `--secret-name-format` | *(none)* | Generate a `writeConnectionSecretToRef` block in the Workspace with a dynamic name. See [Secret name format](#secret-name-format). |
-| `--provider-config-format` | *(none)* | Compute `providerConfigRef.name` dynamically from spec fields instead of reading `spec.providerConfig`. When set, `providerConfig` is removed from the XRD. See [Provider config format](#provider-config-format). |
+| `--provider-config` | `my-provider-config` | Name of the `ProviderConfig` on the cluster |
+| `--provider-config-kind` | `ProviderConfig` | Kind for `providerConfigRef` (`ProviderConfig` or `ClusterProviderConfig`) |
+| `--composition-update-policy` | `Automatic` | `defaultCompositionUpdatePolicy` in the XRD |
+| `--scope` | `Namespaced` | XRD scope (`Namespaced` or `Cluster`) |
+| `--workspace-source` | `Remote` | `source` field of the Workspace `forProvider` |
+| `--workspace-api-version` | `opentofu.m.upbound.io/v1beta1` | `apiVersion` of the Workspace resource |
+| `--function-go-templating` | `function-go-templating` | Name of the go-templating Function on the cluster |
+| `--function-auto-ready` | `function-auto-ready` | Name of the auto-ready Function on the cluster |
+| `--auto-ready/--no-auto-ready` | `true` | Append a `function-auto-ready` step to the pipeline |
+| `--extra-var` | *(none)* | Add a spec field not from the Terraform module. Repeatable. |
+| `--secret-name-format` | *(none)* | Format string for `writeConnectionSecretToRef.name` |
+| `--provider-config-format` | *(none)* | Compute `providerConfigRef.name` dynamically from spec fields |
 
 ### Extra vars
 
-Some fields belong in the XRD claim schema but are not Terraform module variables — for example routing fields used to select a provider or name a secret. `--extra-var` injects such fields into the XRD `spec.properties` without adding them to the Workspace `varmap`.
+Fields that belong in the XRD but are not Terraform variables — for example routing fields used to select a ProviderConfig.
 
-**Format:** `name:type:description` (required field) or `name:type:description:default` (optional field)
+**Format:** `name:type:description` or `name:type:description:default`
 
 ```bash
-tf2crossplane \
+tf2crossplane infra \
   --module-url '...' \
   --extra-var 'target_region:string:AWS region to deploy into' \
   --extra-var 'target_account:string:AWS account ID'
 ```
 
-The two extra fields appear in the XRD schema and are marked `required` (no default). They are **not** passed to OpenTofu as Terraform variables, but are available for `--secret-name-format` and `--provider-config-format` placeholders.
-
-To make a field optional, add a default as a fourth colon-separated value:
-
-```bash
---extra-var 'environment:string:Target environment:prod'
-```
-
 ### Secret name format
 
-When OpenTofu outputs need to be stored in a Kubernetes Secret, use `--secret-name-format` to add a `writeConnectionSecretToRef` block to the generated Workspace.
-
-**Supported placeholders:**
-
-| Placeholder | Resolves to |
-|-------------|-------------|
-| `{module}` | Literal module name, inlined at generation time (e.g. `terraform-aws-alb`) |
-| `{namespace}` | `.metadata.namespace` of the composite resource at runtime |
-| `{name}` | `.metadata.name` of the composite resource at runtime |
-| `{<field>}` | `.spec.<field>` of the composite resource at runtime — any spec field, including extra vars |
-
 ```bash
-tf2crossplane \
+tf2crossplane infra \
   --module-url '...' \
   --extra-var 'target_region:string:AWS region' \
   --extra-var 'target_account:string:AWS account ID' \
   --secret-name-format 'tf-outputs-{module}-{namespace}-{name}-{target_account}-{target_region}'
 ```
+
+Supported placeholders: `{module}`, `{namespace}`, `{name}`, `{<spec_field>}`.
 
 ### Provider config format
 
-By default, each claim exposes a `providerConfig` field in its spec so the user can choose which `ProviderConfig` to use. When the ProviderConfig name follows a convention derived from other claim fields (e.g. one ProviderConfig per AWS account × region), `--provider-config-format` lets you encode that convention directly in the Composition.
-
-When `--provider-config-format` is set:
-- `providerConfigRef.name` in the Workspace is computed dynamically at runtime instead of reading `spec.providerConfig`
-- The `providerConfig` field is **removed** from the XRD — it would be misleading to expose a field that has no effect
-
-**Supported placeholders:** same as `--secret-name-format` (`{module}`, `{namespace}`, `{name}`, `{<spec_field>}`)
+When the ProviderConfig name follows a convention derived from claim fields:
 
 ```bash
-tf2crossplane \
+tf2crossplane infra \
   --module-url '...' \
   --extra-var 'target_account:string:AWS account ID' \
   --extra-var 'target_region:string:AWS region' \
-  --provider-config-format 'tf-aws-{target_account}-{target_region}' \
-  --secret-name-format 'tf-outputs-{module}-{namespace}-{name}-{target_account}-{target_region}'
+  --provider-config-format 'tf-aws-{target_account}-{target_region}'
 ```
 
-### Examples
+When set, `providerConfig` is removed from the XRD and `providerConfigRef.name` is computed dynamically.
 
-**S3 bucket:**
-```bash
-tf2crossplane \
-  --module-url 'git::https://github.com/terraform-aws-modules/terraform-aws-s3-bucket.git?ref=v4.6.0' \
-  --output-dir out/s3/ \
-  --group platform.example.io \
-  --kind S3Bucket
-```
-
-**Auto Scaling Group (93 variables, nested `optional()` types):**
-```bash
-tf2crossplane \
-  --module-url 'git::https://github.com/terraform-aws-modules/terraform-aws-autoscaling.git?ref=v8.3.0' \
-  --output-dir out/asg/ \
-  --group platform.example.io \
-  --kind AutoScalingGroup
-```
-
-**Module in a subdirectory of a mono-repo (the `//` separator):**
-
-Some Terraform registries publish multiple modules in a single Git repo (e.g. `terraform-aws-iam`). Use the Terraform `//` subdir syntax to point at the right folder:
+### Module in a subdirectory (mono-repo)
 
 ```bash
-tf2crossplane \
+tf2crossplane infra \
   --module-url 'git::https://github.com/terraform-aws-modules/terraform-aws-iam.git//modules/iam-role?ref=v6.4.0' \
   --output-dir out/iam-role/ \
   --group platform.example.io \
   --kind IAMRole
 ```
 
-`tf2crossplane` splits the URL at `//`, clones only the repo root, then parses `variables.tf` / `outputs.tf` from the subdirectory. The full URL (including `//`) is preserved verbatim in the generated `Composition` so that `provider-opentofu` fetches the correct submodule at runtime.
+---
 
-### Applying the output
+## `stack` — Generate a Composition of Compositions
 
-```bash
-kubectl apply -f out/s3/xrd.yaml
-kubectl apply -f out/s3/composition.yaml
+A **Stack** is an opinionated higher-level abstraction that orchestrates multiple Infra XRs together. The `infra` subcommand covers single-module APIs; `stack` covers multi-resource platforms.
+
+Example: a `StackVM` that provisions a Security Group and an IAM instance profile, then wires both into an EC2 instance:
+
+```
+StackVM Claim
+  └── XR StackVM
+        ├── XSecurityGroup   ← SG Infra Composition → security_group_id wired to EC2
+        ├── XIamRole         ← IAM Infra Composition → iam_instance_profile_arn wired to EC2
+        └── XEC2Instance     ← EC2 Infra Composition ← receives vpc_security_group_ids + iam_instance_profile
 ```
 
-Then create a claim:
+### Pre-existing resources
+
+Optional resources (SG, IAM…) may already exist before Crossplane. Two modes are supported:
+
+| Field | Behaviour |
+|---|---|
+| `existingId` | Cloud-native identifier (ARN, resource ID, SG ID…). Crossplane passes it through; the resource is **not** created and **not** managed. |
+| `import` | Crossplane adopts the existing resource via OpenTofu `import {}`. It becomes managed and will be destroyed if the Claim is deleted. |
+
+```yaml
+# Create mode (default) — SG created by the Stack
+spec:
+  sg:
+    name: my-server-sg
+    vpc_id: vpc-0abc1234
+
+# Reference mode — reuse an existing SG, not managed by Crossplane
+spec:
+  sg:
+    existingId: "sg-0existing123"
+
+# Import mode — Crossplane adopts the existing SG going forward
+spec:
+  sg:
+    import: "sg-0existing123"
+    description: "imported SG"
+```
+
+### Usage — flags
+
+```bash
+tf2crossplane stack \
+  --name StackVM \
+  --xrd-dir apps/crossplane-compositions/ \
+  --output-dir apps/crossplane-compositions/stacks/stackvm/ \
+  --group platform.example.io \
+  --resource sg:xsecuritygroups \
+  --resource iam:xiamroles \
+  --resource ec2:xec2instances \
+  --wire "sg.outputs.security_group_id -> ec2.vpc_security_group_ids" \
+  --wire "iam.outputs.iam_instance_profile_arn -> ec2.iam_instance_profile"
+```
+
+### Usage — definition file
+
+For complex stacks, a `*.stack.yaml` file is cleaner than flags:
+
+```yaml
+# stackvm.stack.yaml
+name: StackVM
+group: platform.example.io
+version: v1alpha1
+xrd_dir: apps/crossplane-compositions/
+output_dir: apps/crossplane-compositions/stacks/stackvm/
+
+resources:
+  - name: sg
+    xrd: xsecuritygroups
+    optional: true          # supports existingId + import modes
+    expose:
+      - name
+      - description
+      - vpc_id
+      - ingress_rules
+      - tags
+
+  - name: iam
+    xrd: xiamroles
+    optional: true
+    expose:
+      - role_name
+      - trusted_role_services
+      - tags
+
+  - name: ec2
+    xrd: xec2instances      # always created
+    expose:
+      - name
+      - ami
+      - instance_type
+      - subnet_id
+      - key_name
+      - tags
+
+wires:
+  - source: sg.outputs.security_group_id
+    target: ec2.vpc_security_group_ids
+    fallback: spec.sg.existingId
+  - source: iam.outputs.iam_instance_profile_arn
+    target: ec2.iam_instance_profile
+    fallback: spec.iam.existingId
+```
+
+```bash
+tf2crossplane stack --file stackvm.stack.yaml
+```
+
+The resulting XR (Crossplane v2 — create the composite resource directly):
 
 ```yaml
 apiVersion: platform.example.io/v1alpha1
-kind: S3Bucket
+kind: XStackVM
 metadata:
-  name: my-bucket
+  name: my-server
+  namespace: my-team
 spec:
-  providerConfig: my-provider-config
-  bucket: my-unique-bucket-name
-  force_destroy: false
+  providerConfig: aws-prod
+  sg:
+    name: my-server-sg
+    vpc_id: vpc-0abc1234
+    description: "Allow SSH"
+    ingress_rules: ["ssh-tcp"]
+    tags:
+      env: prod
+  iam:
+    existingId: "arn:aws:iam::123456789:instance-profile/my-existing-profile"  # reuse existing
+  ec2:
+    name: my-server
+    ami: ami-0c55b159cbfafe1f0
+    instance_type: t3.micro
+    subnet_id: subnet-0aaaa111
+    key_name: my-keypair
+    tags:
+      env: prod
+      team: my-team
 ```
 
-## Type mapping
+### Multiple sources → one list field
 
-Each Terraform variable goes through two independent transformations — one for the XRD schema, one for the Composition template:
+When several resources feed the same target field (e.g. `vpc_security_group_ids` on an EC2 instance), declare multiple wires with the same target. `tf2crossplane` detects the collision and renders a YAML list automatically:
 
-```mermaid
-flowchart TD
-    HCL["variables.tf
-    ───────────────────────
-    bucket        = string
-    force_destroy = bool
-    tags          = map(string)
-    listeners     = optional(any, {})"]
+```yaml
+# stackvm.stack.yaml
+resources:
+  - name: sg_ad
+    xrd: xsecuritygroups
+    optional: true
+    expose: [name, description, vpc_id]
 
-    HCL -->|python-hcl2| RAW["Raw type string
-    ───────────────────────
-    'string'
-    'bool'
-    'map(string)'
-    'optional(any, {})'"]
+  - name: sg_db
+    xrd: xsecuritygroups
+    optional: true
+    expose: [name, description, vpc_id]
 
-    RAW -->|_unwrap_optional| CLEAN["Clean type
-    ───────────────────────
-    'string'
-    'bool'
-    'map(string)'
-    'any'"]
+  - name: ec2
+    xrd: xec2instances
+    expose: [name, ami, instance_type, subnet_id]
 
-    CLEAN -->|tf_type_to_openapi| OAS["OpenAPI v3 schema → XRD
-    ───────────────────────
-    type: string
-    type: boolean
-    type: object + additionalProperties
-    type: object + x-kubernetes-preserve-unknown-fields"]
-
-    CLEAN -->|tf_type_to_go_expr| GOTPL["Go template expr → Composition
-    ───────────────────────
-    index .spec 'bucket' | quote
-    index .spec 'force_destroy'
-    index .spec 'tags' | toJson
-    index .spec 'listeners' | toJson"]
+wires:
+  - source: sg_ad.outputs.security_group_id
+    target: ec2.vpc_security_group_ids
+    fallback: spec.sg_ad.existingId
+  - source: sg_db.outputs.security_group_id
+    target: ec2.vpc_security_group_ids
+    fallback: spec.sg_db.existingId
 ```
 
-Reference table:
+Generated template fragment:
+
+```yaml
+spec:
+  providerConfig: {{ .observed.composite.resource.spec.providerConfig }}
+  vpc_security_group_ids:
+  - {{ (.observed.composite.resource.status.sgAdSecurityGroupId | default .observed.composite.resource.spec.sg_ad.existingId) }}
+  - {{ (.observed.composite.resource.status.sgDbSecurityGroupId | default .observed.composite.resource.spec.sg_db.existingId) }}
+```
+
+Resulting XR:
+
+```yaml
+apiVersion: platform.example.io/v1alpha1
+kind: XStackVM
+metadata:
+  name: my-server
+  namespace: my-team
+spec:
+  providerConfig: aws-prod
+  sg_ad:
+    name: my-server-ad
+    vpc_id: vpc-0abc1234
+    description: "Allow AD traffic (port 389, 636)"
+  sg_db:
+    existingId: sg-0existing123   # reuse an existing SG, not managed by Crossplane
+  ec2:
+    name: my-server
+    ami: ami-0c55b159cbfafe1f0
+    instance_type: t3.micro
+    subnet_id: subnet-0aaaa111
+```
+
+### Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--file`, `-f` | *(none)* | Path to a `*.stack.yaml` definition file |
+| `--name` | *(required without --file)* | Stack kind name (CamelCase, e.g. `StackVM`) |
+| `--xrd-dir` | `.` | Directory containing the Infra XRD YAML files |
+| `--output-dir` | `.` | Output directory for generated files |
+| `--group` | `example.crossplane.io` | Crossplane API group |
+| `--version` | `v1alpha1` | API version |
+| `--resource` | *(repeatable)* | Infra resource to include. Format: `name:xrd-plural` |
+| `--wire` | *(repeatable)* | Output wiring. Format: `source.outputs.field -> target.field` |
+| `--function-go-templating` | `function-go-templating` | Name of the go-templating Function |
+| `--function-auto-ready` | `function-auto-ready` | Name of the auto-ready Function |
+
+---
+
+## Type mapping (`infra`)
+
+Each Terraform variable goes through two transformations — one for the XRD schema, one for the Composition template:
 
 | Terraform type | OpenAPI schema | Go template filter |
 |----------------|----------------|--------------------|
@@ -335,6 +441,8 @@ Reference table:
 | `object({…})` | `{type: object, x-kubernetes-preserve-unknown-fields: true}` | `\| toJson` |
 | `optional(X)` | *(unwrap, recurse on X)* | *(unwrap, recurse on X)* |
 | `any` / unknown | `{type: object, x-kubernetes-preserve-unknown-fields: true}` | `\| toJson` |
+
+---
 
 ## Development
 
@@ -350,10 +458,4 @@ task generate-s3   # generate example output for terraform-aws-s3-bucket
 task generate-asg  # generate example output for terraform-aws-autoscaling
 ```
 
-Tests live in `tests/` and cover the parser (type conversion), XRD generation, and Composition generation. No real Git clone happens during tests — fixtures in `conftest.py` simulate `parse_variables()` output.
-
-## Log level
-
-```bash
-TF2CROSSPLANE_LOG_LEVEL=DEBUG tf2crossplane --module-url ...
-```
+Tests live in `tests/` split into `tests/infra/` and `tests/stack/`. No real Git clone happens during tests — fixtures in `conftest.py` simulate parsed module output.

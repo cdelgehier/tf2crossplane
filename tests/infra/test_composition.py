@@ -1,4 +1,4 @@
-from tf2crossplane.composition import _format_to_go_printf, generate_composition
+from tf2crossplane.infra.composition import _format_to_go_printf, generate_composition
 from tf2crossplane.settings import Settings
 
 

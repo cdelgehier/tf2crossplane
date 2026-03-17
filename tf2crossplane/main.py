@@ -4,20 +4,25 @@ from pathlib import Path
 import click
 import yaml
 
-from tf2crossplane.composition import generate_composition
-from tf2crossplane.logger import LOGGER
-from tf2crossplane.parser import (
+from tf2crossplane.infra.composition import generate_composition
+from tf2crossplane.infra.parser import (
     clone_module,
     module_name_from_url,
     module_name_to_kind,
     parse_outputs,
     parse_variables,
 )
+from tf2crossplane.infra.xrd import generate_xrd
+from tf2crossplane.logger import LOGGER
 from tf2crossplane.settings import Settings
-from tf2crossplane.xrd import generate_xrd
 
 
-@click.command()
+@click.group()
+def cli() -> None:
+    """Generate Crossplane artifacts from Terraform modules or XRD definitions."""
+
+
+@cli.command("infra")
 @click.option(
     "--module-url",
     required=True,
@@ -68,7 +73,7 @@ from tf2crossplane.xrd import generate_xrd
     "--workspace-api-version",
     default="opentofu.m.upbound.io/v1beta1",
     show_default=True,
-    help="apiVersion of the Workspace resource in the generated Composition (e.g. opentofu.m.upbound.io/v1beta1)",
+    help="apiVersion of the Workspace resource in the generated Composition",
 )
 @click.option(
     "--function-go-templating",
@@ -93,16 +98,16 @@ from tf2crossplane.xrd import generate_xrd
     "--auto-ready/--no-auto-ready",
     default=True,
     show_default=True,
-    help="Add a function-auto-ready step to the pipeline to propagate composed resource readiness to the composite",
+    help="Add a function-auto-ready step to the pipeline",
 )
 @click.option(
     "--extra-var",
     "extra_vars",
     multiple=True,
     help=(
-        "Add a field to the XRD spec that is not part of the Terraform module. "
+        "Add a field to the XRD spec not in the Terraform module. "
         "Format: name:type:description or name:type:description:default. "
-        "Can be repeated. Example: --extra-var 'target_region:string:AWS region'"
+        "Example: --extra-var 'target_region:string:AWS region'"
     ),
 )
 @click.option(
@@ -110,8 +115,7 @@ from tf2crossplane.xrd import generate_xrd
     default="",
     help=(
         "Format string for writeConnectionSecretToRef.name. "
-        "Supported placeholders: {module}, {namespace}, {name}, {<spec_field>}. "
-        "Example: 'tf-outputs-{module}-{namespace}-{name}'"
+        "Supported placeholders: {module}, {namespace}, {name}, {<spec_field>}."
     ),
 )
 @click.option(
@@ -119,13 +123,11 @@ from tf2crossplane.xrd import generate_xrd
     default="",
     help=(
         "Format string for providerConfigRef.name. When set, the name is computed "
-        "dynamically instead of reading spec.providerConfig from the claim, and the "
-        "providerConfig field is omitted from the XRD. "
-        "Supported placeholders: {module}, {namespace}, {name}, {<spec_field>}. "
-        "Example: 'tf-aws-{target_account}-{target_region}'"
+        "dynamically instead of reading spec.providerConfig from the claim. "
+        "Supported placeholders: {module}, {namespace}, {name}, {<spec_field>}."
     ),
 )
-def main(
+def infra(
     module_url: str,
     output_dir: str,
     group: str,
@@ -144,11 +146,7 @@ def main(
     secret_name_format: str,
     provider_config_format: str,
 ) -> None:
-    """Generate Crossplane XRD + Composition from a Terraform module Git URL."""
-
-    # Bundle all generation parameters into a single object passed down to
-    # generate_xrd() and generate_composition(), instead of threading each
-    # individual value through every function signature.
+    """Generate XRD + Composition from a Terraform module Git URL."""
     settings = Settings(
         module_url=module_url,
         output_dir=output_dir,
@@ -169,14 +167,9 @@ def main(
         provider_config_format=provider_config_format,
     )
 
-    # Derive the Kubernetes kind from the module name (e.g. terraform-aws-s3-bucket → S3Bucket)
-    # unless the user overrides it explicitly with --kind.
     module_name = module_name_from_url(module_url)
     resolved_kind = kind or module_name_to_kind(module_name)
 
-    # Clone into a temp directory so we can parse variables.tf / outputs.tf
-    # without polluting the working directory. The tmpdir is always deleted in
-    # the finally block, even if parsing raises an exception.
     LOGGER.info("Cloning %s ...", module_url)
     tmpdir_root, module_path = clone_module(module_url)
     try:
@@ -192,15 +185,11 @@ def main(
         resolved_kind,
     )
 
-    # Generate the two Crossplane manifests from the parsed module data.
     xrd = generate_xrd(variables, outputs, resolved_kind, settings)
     composition, literal_cls, literal_repr = generate_composition(
         variables, outputs, resolved_kind, module_url, settings
     )
 
-    # Register the PyYAML custom representer so the Go template inside the
-    # Composition is serialised with | block style instead of a single escaped line.
-    # This must be done before the first yaml.dump() call.
     yaml.add_representer(literal_cls, literal_repr)
 
     output_path = Path(output_dir)
@@ -209,10 +198,8 @@ def main(
     xrd_path = output_path / "xrd.yaml"
     comp_path = output_path / "composition.yaml"
 
-    header = f"# Generated by tf2crossplane from {module_url}\n# Do not edit manually — re-run tf2crossplane to regenerate.\n"
+    header = f"# Generated by tf2crossplane infra from {module_url}\n# Do not edit manually — re-run tf2crossplane infra to regenerate.\n"
 
-    # sort_keys=False preserves the insertion order of the dicts (apiVersion first,
-    # then kind, metadata, spec…), which matches the conventional Kubernetes YAML layout.
     with open(xrd_path, "w") as f:
         f.write(header)
         yaml.dump(xrd, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
@@ -229,3 +216,96 @@ def main(
 
     LOGGER.info("Written: %s", xrd_path)
     LOGGER.info("Written: %s", comp_path)
+
+
+@cli.command("stack")
+@click.option(
+    "--file",
+    "-f",
+    "stack_file",
+    type=click.Path(exists=True, path_type=Path),
+    help="Path to a *.stack.yaml definition file",
+)
+@click.option("--name", default="", help="Stack kind name (CamelCase, e.g. StackVM)")
+@click.option(
+    "--xrd-dir",
+    default=".",
+    show_default=True,
+    help="Directory containing the Infra XRD YAML files to read",
+)
+@click.option(
+    "--output-dir",
+    default=".",
+    show_default=True,
+    help="Output directory for generated YAML files",
+)
+@click.option(
+    "--group",
+    default="example.crossplane.io",
+    show_default=True,
+    help="Crossplane API group",
+)
+@click.option("--version", default="v1alpha1", show_default=True, help="API version")
+@click.option(
+    "--resource",
+    "resources",
+    multiple=True,
+    help=(
+        "Infra resource to include. Format: name:xrd-plural (e.g. kms:xkmskeys). "
+        "Can be repeated."
+    ),
+)
+@click.option(
+    "--wire",
+    "wires",
+    multiple=True,
+    help=(
+        "Output wiring between resources. "
+        "Format: 'source.outputs.field -> target.field' "
+        "(e.g. 'kms.outputs.key_id -> ec2.kms_key_id'). "
+        "Can be repeated."
+    ),
+)
+@click.option(
+    "--function-go-templating",
+    default="function-go-templating",
+    show_default=True,
+    help="Name of the function-go-templating Function installed on the cluster",
+)
+@click.option(
+    "--function-auto-ready",
+    default="function-auto-ready",
+    show_default=True,
+    help="Name of the function-auto-ready Function installed on the cluster",
+)
+def stack(
+    stack_file: Path | None,
+    name: str,
+    xrd_dir: str,
+    output_dir: str,
+    group: str,
+    version: str,
+    resources: tuple[str, ...],
+    wires: tuple[str, ...],
+    function_go_templating: str,
+    function_auto_ready: str,
+) -> None:
+    """Generate XRD + Composition for a Stack (Composition of Compositions).
+
+    Input can be a *.stack.yaml file (--file) or CLI flags (--name, --resource, --wire).
+    Each resource in the Stack references an existing Infra XRD read from --xrd-dir.
+    """
+    from tf2crossplane.stack.command import run_stack
+
+    run_stack(
+        stack_file=stack_file,
+        name=name,
+        xrd_dir=Path(xrd_dir),
+        output_dir=Path(output_dir),
+        group=group,
+        version=version,
+        resources=list(resources),
+        wires=list(wires),
+        function_go_templating=function_go_templating,
+        function_auto_ready=function_auto_ready,
+    )

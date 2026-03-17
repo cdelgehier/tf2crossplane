@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from tf2crossplane.parser import (
+from tf2crossplane.infra.parser import (
     clone_module,
     module_name_from_url,
     module_name_to_kind,
@@ -116,6 +116,8 @@ def test_module_name_from_url(url, expected):
     assert module_name_from_url(url) == expected
 
 
+@patch("tf2crossplane.infra.parser.subprocess.run")
+@patch("tf2crossplane.infra.parser.tempfile.mkdtemp")
 @pytest.mark.parametrize(
     "url,expected_repo,expected_subdir,expected_ref",
     [
@@ -149,15 +151,14 @@ def test_module_name_from_url(url, expected):
         ),
     ],
 )
-def test_clone_module_git_command(url, expected_repo, expected_subdir, expected_ref):
+def test_clone_module_git_command(
+    mock_mkdtemp, mock_run, url, expected_repo, expected_subdir, expected_ref
+):
     """clone_module passes the correct repo URL (without subdir) to git clone and returns the right path."""
     fake_tmpdir = "/tmp/tfgen-fake"
+    mock_mkdtemp.return_value = fake_tmpdir
 
-    with (
-        patch("tf2crossplane.parser.tempfile.mkdtemp", return_value=fake_tmpdir),
-        patch("tf2crossplane.parser.subprocess.run") as mock_run,
-    ):
-        result = clone_module(url)  # returns (tmpdir_root, module_path)
+    result = clone_module(url)  # returns (tmpdir_root, module_path)
 
     expected_cmd = ["git", "clone", "--depth=1"]
     if expected_ref:

@@ -22,7 +22,7 @@ Output files (written by main.py):
 import re
 from typing import Any
 
-from tf2crossplane.parser import module_name_from_url, tf_type_to_go_expr
+from tf2crossplane.infra.parser import module_name_from_url, tf_type_to_go_expr
 from tf2crossplane.settings import Settings
 
 _METADATA_PLACEHOLDERS = {

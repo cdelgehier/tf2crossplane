@@ -1,6 +1,6 @@
 from typing import Any
 
-from tf2crossplane.parser import tf_type_to_openapi
+from tf2crossplane.infra.parser import tf_type_to_openapi
 from tf2crossplane.settings import Settings
 
 
@@ -93,6 +93,9 @@ def generate_xrd(
             "names": {
                 "kind": composite_kind,
                 "plural": composite_plural,
+            },
+            "defaultCompositionRef": {
+                "name": f"{composite_plural}.{settings.group}",
             },
             "defaultCompositionUpdatePolicy": settings.composition_update_policy,
             "versions": [
