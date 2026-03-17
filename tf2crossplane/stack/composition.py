@@ -25,6 +25,9 @@ def _resource_block(
     res_group = xrd_group(infra_xrd) or group
     res_kind = xrd_kind(infra_xrd)
     res_name = resource.name
+    # res_slug is used in metadata.name only — Kubernetes requires RFC 1123 (no underscores).
+    # res_name is kept as-is for spec/status field references in Go templates.
+    res_slug = res_name.replace("_", "-")
 
     # Build inbound wire assignments (fields this resource receives from the XR status).
     # Multiple wires targeting the same field are rendered as a YAML list.
@@ -123,7 +126,7 @@ def _resource_block(
 apiVersion: {res_group}/{version}
 kind: {res_kind}
 metadata:
-  name: {{{{ .observed.composite.resource.metadata.name }}}}-{res_name}
+  name: {{{{ .observed.composite.resource.metadata.name }}}}-{res_slug}
   namespace: {{{{ .observed.composite.resource.metadata.namespace }}}}
   annotations:
     gotemplating.fn.crossplane.io/composition-resource-name: {res_name}
@@ -134,7 +137,7 @@ spec:
 apiVersion: {res_group}/{version}
 kind: {res_kind}
 metadata:
-  name: {{{{ .observed.composite.resource.metadata.name }}}}-{res_name}
+  name: {{{{ .observed.composite.resource.metadata.name }}}}-{res_slug}
   namespace: {{{{ .observed.composite.resource.metadata.namespace }}}}
   annotations:
     gotemplating.fn.crossplane.io/composition-resource-name: {res_name}
@@ -148,7 +151,7 @@ spec:
 apiVersion: {res_group}/{version}
 kind: {res_kind}
 metadata:
-  name: {{{{ .observed.composite.resource.metadata.name }}}}-{res_name}
+  name: {{{{ .observed.composite.resource.metadata.name }}}}-{res_slug}
   namespace: {{{{ .observed.composite.resource.metadata.namespace }}}}
   annotations:
     gotemplating.fn.crossplane.io/composition-resource-name: {res_name}

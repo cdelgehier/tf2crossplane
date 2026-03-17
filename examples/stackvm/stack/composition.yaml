@@ -52,7 +52,7 @@ spec:
           \  tags:{{ .observed.composite.resource.spec.kms.tags | toYaml | nindent\
           \ 4 }}\n{{- end }}\n{{- end }}\n---\napiVersion: homelab.crossplane.io/v1alpha1\n\
           kind: XSecurityGroup\nmetadata:\n  name: {{ .observed.composite.resource.metadata.name\
-          \ }}-security_group\n  namespace: {{ .observed.composite.resource.metadata.namespace\
+          \ }}-security-group\n  namespace: {{ .observed.composite.resource.metadata.namespace\
           \ }}\n  annotations:\n    gotemplating.fn.crossplane.io/composition-resource-name:\
           \ security_group\nspec:\n  providerConfig: {{ .observed.composite.resource.spec.providerConfig\
           \ }}\n{{- if .observed.composite.resource.spec.security_group.name }}\n\
