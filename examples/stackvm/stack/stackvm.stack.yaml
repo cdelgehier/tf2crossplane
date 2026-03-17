@@ -1,0 +1,40 @@
+name: StackVM
+group: homelab.crossplane.io
+version: v1alpha1
+xrd_dir: ../infra
+output_dir: .
+
+resources:
+  - name: kms
+    xrd: xkmss
+    optional: true
+    expose:
+      - create
+      - description
+      - deletion_window_in_days
+      - enable_key_rotation
+      - tags
+
+  - name: security_group
+    xrd: xsecuritygroups
+    expose:
+      - name
+      - description
+      - vpc_id
+      - ingress_with_cidr_blocks
+      - egress_with_cidr_blocks
+      - tags
+
+  - name: ec2
+    xrd: xec2instances
+    expose:
+      - ami_ssm_parameter
+      - instance_type
+      - subnet_id
+      - tags
+
+wires:
+  - source: kms.outputs.key_arn
+    target: ec2.root_block_device.kms_key_id
+  - source: security_group.outputs.security_group_id
+    target: ec2.vpc_security_group_ids

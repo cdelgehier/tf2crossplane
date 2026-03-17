@@ -410,6 +410,83 @@ spec:
     subnet_id: subnet-0aaaa111
 ```
 
+### Nested wire targets (object fields)
+
+When the target field is a nested property of an object (e.g. `root_block_device.kms_key_id`), use dot notation in the wire target. `tf2crossplane` renders the parent as a YAML object containing the wired child key, and excludes the parent from spec forwarding to avoid conflicts:
+
+```yaml
+wires:
+  - source: kms.outputs.key_arn
+    target: ec2.root_block_device.kms_key_id
+```
+
+Generated template fragment:
+
+```yaml
+  root_block_device:
+    kms_key_id: {{ (.observed.composite.resource.status.kmsKeyArn | default .observed.composite.resource.spec.kms.existingId) }}
+```
+
+Multiple nested fields in the same parent object are grouped automatically:
+
+```yaml
+wires:
+  - source: kms.outputs.key_arn
+    target: ec2.root_block_device.kms_key_id
+  - source: sizing.outputs.root_volume_size
+    target: ec2.root_block_device.volume_size
+```
+
+```yaml
+  root_block_device:
+    kms_key_id: {{ (.observed.composite.resource.status.kmsKeyArn | ...) }}
+    volume_size: {{ (.observed.composite.resource.status.sizingRootVolumeSize | ...) }}
+```
+
+### Example — StackVM (KMS + SecurityGroup + EC2)
+
+See [`examples/stackvm/`](examples/stackvm/) for a complete example equivalent to a VM stack that provisions:
+
+- **KMS** key (optional, encrypted root volume) — `terraform-aws-kms v4.2.0`
+- **Security Group** — `terraform-aws-security-group v5.3.1`
+- **EC2 Instance** — `terraform-aws-ec2-instance v6.3.0`
+
+Wires:
+- `kms.outputs.key_arn` → `ec2.root_block_device.kms_key_id` (nested target)
+- `security_group.outputs.security_group_id` → `ec2.vpc_security_group_ids` (array target)
+
+```bash
+task example:stackvm
+```
+
+Resulting XR (see [`examples/stackvm/xr-stackvm.yaml`](examples/stackvm/xr-stackvm.yaml)):
+
+```yaml
+apiVersion: homelab.crossplane.io/v1alpha1
+kind: XStackVM
+metadata:
+  name: my-vm
+  namespace: crossplane-system
+spec:
+  providerConfig: aws-personal-eu-west-1
+  kms:
+    description: my-vm root volume encryption key
+    enable_key_rotation: true
+  security_group:
+    name: my-vm-sg
+    vpc_id: vpc-xxxxxxxxxxxxxxx
+    ingress_with_cidr_blocks:
+      - from_port: 22
+        to_port: 22
+        protocol: tcp
+        cidr_blocks: 10.0.0.0/8
+  ec2:
+    ami_ssm_parameter: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+    instance_type: t3.micro
+    subnet_id: subnet-xxxxxxxxxxxxxxx
+    # kms_key_id and vpc_security_group_ids are wired automatically
+```
+
 ### Options
 
 | Option | Default | Description |
