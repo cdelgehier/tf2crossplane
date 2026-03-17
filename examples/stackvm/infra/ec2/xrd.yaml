@@ -437,7 +437,7 @@ spec:
                         description: The IPv6 address assigned to the instance, if
                           applicable
                       tags_all:
-                        type: string
+                        x-kubernetes-preserve-unknown-fields: true
                         description: A map of tags assigned to the resource, including
                           those inherited from the provider default_tags configuration
                           block
@@ -459,7 +459,7 @@ spec:
                         type: string
                         description: The availability zone of the created instance
                       ebs_volumes:
-                        type: string
+                        x-kubernetes-preserve-unknown-fields: true
                         description: Map of EBS volumes created and their attributes
                       iam_role_name:
                         type: string

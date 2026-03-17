@@ -40,3 +40,5 @@ wires:
     target: ec2.root_block_device.encrypted
   - source: security_group.outputs.security_group_id
     target: ec2.vpc_security_group_ids
+  - static: "false"
+    target: ec2.create_security_group

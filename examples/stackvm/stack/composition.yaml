@@ -74,16 +74,17 @@ spec:
           \ ec2\nspec:\n  providerConfig: {{ .observed.composite.resource.spec.providerConfig\
           \ }}\n  vpc_security_group_ids:\n  - {{ (.observed.composite.resource.status.securityGroupSecurityGroupId\
           \ | default .observed.composite.resource.spec.security_group.existingId)\
-          \ }}\n  root_block_device:\n    kms_key_id: {{ (.observed.composite.resource.status.kmsKeyArn\
-          \ | default .observed.composite.resource.spec.kms.existingId) }}\n{{- if\
-          \ .observed.composite.resource.spec.ec2.ami_ssm_parameter }}\n  ami_ssm_parameter:\
-          \ {{ .observed.composite.resource.spec.ec2.ami_ssm_parameter }}\n{{- end\
-          \ }}\n{{- if .observed.composite.resource.spec.ec2.instance_type }}\n  instance_type:\
-          \ {{ .observed.composite.resource.spec.ec2.instance_type }}\n{{- end }}\n\
-          {{- if .observed.composite.resource.spec.ec2.subnet_id }}\n  subnet_id:\
-          \ {{ .observed.composite.resource.spec.ec2.subnet_id }}\n{{- end }}\n{{-\
-          \ if .observed.composite.resource.spec.ec2.tags }}\n  tags:{{ .observed.composite.resource.spec.ec2.tags\
-          \ | toYaml | nindent 4 }}\n{{- end }}"
+          \ }}\n  create_security_group: false\n  root_block_device:\n    kms_key_id:\
+          \ {{ (.observed.composite.resource.status.kmsKeyArn | default .observed.composite.resource.spec.kms.existingId)\
+          \ }}\n    encrypted: true\n{{- if .observed.composite.resource.spec.ec2.ami_ssm_parameter\
+          \ }}\n  ami_ssm_parameter: {{ .observed.composite.resource.spec.ec2.ami_ssm_parameter\
+          \ }}\n{{- end }}\n{{- if .observed.composite.resource.spec.ec2.instance_type\
+          \ }}\n  instance_type: {{ .observed.composite.resource.spec.ec2.instance_type\
+          \ }}\n{{- end }}\n{{- if .observed.composite.resource.spec.ec2.subnet_id\
+          \ }}\n  subnet_id: {{ .observed.composite.resource.spec.ec2.subnet_id }}\n\
+          {{- end }}\n{{- if .observed.composite.resource.spec.ec2.tags }}\n  tags:{{\
+          \ .observed.composite.resource.spec.ec2.tags | toYaml | nindent 4 }}\n{{-\
+          \ end }}"
   - step: patch-outputs
     functionRef:
       name: function-patch-and-transform

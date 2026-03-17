@@ -9,6 +9,7 @@ advanced wire features: **array targets** and **nested object targets**.
 |---------|--------------|
 | Wire output into a nested object field | `stack/stackvm.stack.yaml` → `target: ec2.root_block_device.kms_key_id` |
 | Wire output into an array field | `stack/stackvm.stack.yaml` → `target: ec2.vpc_security_group_ids` |
+| Static wire (literal value, no source) | `stack/stackvm.stack.yaml` → `static: "true"` + `target: ec2.root_block_device.encrypted` |
 | Optional resource (KMS) with existingId mode | `xr-stackvm.yaml` → `spec.kms:` |
 | `patch-outputs` pipeline step | `stack/composition.yaml` → `step: patch-outputs` |
 
@@ -53,6 +54,7 @@ sequenceDiagram
     Note over XR,EC2: 2nd reconciliation
     XR->>EC2: create XEC2Instance
     XR-->>EC2: root_block_device.kms_key_id = status.kmsKeyArn
+    XR-->>EC2: root_block_device.encrypted = "true" (static wire)
     XR-->>EC2: vpc_security_group_ids = [status.securityGroupSecurityGroupId]
 ```
 
@@ -63,6 +65,9 @@ sequenceDiagram
   `kms_key_id` inside the `root_block_device` object, not at the top level.
 - `target: ec2.vpc_security_group_ids` — array target: the wire renders as a
   YAML list item (`- {{ value }}`), not a bare scalar.
+- `static: "true"` + `target: ec2.root_block_device.encrypted` — static wire:
+  injects a literal value without a dynamic source. Required by AWS when
+  `kms_key_id` is set (`InvalidParameterDependency: KmsKeyId requires Encrypted`).
 - `kms` is `optional: true` — supports `existingId` mode to reuse an existing key.
 
 **`stack/composition.yaml`**

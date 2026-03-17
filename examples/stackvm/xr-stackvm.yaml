@@ -17,14 +17,14 @@ spec:
     description: Security group for my-vm
     vpc_id: vpc-xxxxxxxxxxxxxxx
     ingress_with_cidr_blocks:
-      - from_port: 22
-        to_port: 22
+      - from_port: "22"
+        to_port: "22"
         protocol: tcp
         cidr_blocks: 10.0.0.0/8
         description: SSH from VPN
     egress_with_cidr_blocks:
-      - from_port: 0
-        to_port: 0
+      - from_port: "0"
+        to_port: "0"
         protocol: "-1"
         cidr_blocks: 0.0.0.0/0
         description: Allow all outbound
@@ -35,8 +35,10 @@ spec:
     ami_ssm_parameter: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
     instance_type: t3.micro
     subnet_id: subnet-xxxxxxxxxxxxxxx
-    # kms key is wired automatically from kms.outputs.key_arn → root_block_device.kms_key_id
-    # security group is wired automatically from security_group.outputs.security_group_id → vpc_security_group_ids
+    # wired automatically:
+    #   kms.outputs.key_arn                      → root_block_device.kms_key_id
+    #   static "true"                            → root_block_device.encrypted  (required by AWS when kms_key_id is set)
+    #   security_group.outputs.security_group_id → vpc_security_group_ids
     tags:
       env: production
       managedBy: crossplane
