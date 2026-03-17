@@ -383,6 +383,117 @@ spec:
           status:
             type: object
             properties:
-              outputs:
+              atProvider:
                 type: object
-                x-kubernetes-preserve-unknown-fields: true
+                properties:
+                  outputs:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                    properties:
+                      id:
+                        type: string
+                        description: The ID of the instance
+                      arn:
+                        type: string
+                        description: The ARN of the instance
+                      capacity_reservation_specification:
+                        type: string
+                        description: Capacity reservation specification of the instance
+                      instance_state:
+                        type: string
+                        description: The state of the instance
+                      outpost_arn:
+                        type: string
+                        description: The ARN of the Outpost the instance is assigned
+                          to
+                      password_data:
+                        type: string
+                        description: Base-64 encoded encrypted password data for the
+                          instance. Useful for getting the administrator password
+                          for instances running Microsoft Windows. This attribute
+                          is only exported if `get_password_data` is true
+                      primary_network_interface_id:
+                        type: string
+                        description: The ID of the instance's primary network interface
+                      private_dns:
+                        type: string
+                        description: The private DNS name assigned to the instance.
+                          Can only be used inside the Amazon EC2, and only available
+                          if you've enabled DNS hostnames for your VPC
+                      public_dns:
+                        type: string
+                        description: The public DNS name assigned to the instance.
+                          For EC2-VPC, this is only available if you've enabled DNS
+                          hostnames for your VPC
+                      public_ip:
+                        type: string
+                        description: The public IP address assigned to the instance,
+                          if applicable.
+                      private_ip:
+                        type: string
+                        description: The private IP address assigned to the instance
+                      ipv6_addresses:
+                        type: string
+                        description: The IPv6 address assigned to the instance, if
+                          applicable
+                      tags_all:
+                        type: string
+                        description: A map of tags assigned to the resource, including
+                          those inherited from the provider default_tags configuration
+                          block
+                      spot_bid_status:
+                        type: string
+                        description: The current bid status of the Spot Instance Request
+                      spot_request_state:
+                        type: string
+                        description: The current request state of the Spot Instance
+                          Request
+                      spot_instance_id:
+                        type: string
+                        description: The Instance ID (if any) that is currently fulfilling
+                          the Spot Instance request
+                      ami:
+                        type: string
+                        description: AMI ID that was used to create the instance
+                      availability_zone:
+                        type: string
+                        description: The availability zone of the created instance
+                      ebs_volumes:
+                        type: string
+                        description: Map of EBS volumes created and their attributes
+                      iam_role_name:
+                        type: string
+                        description: The name of the IAM role
+                      iam_role_arn:
+                        type: string
+                        description: The Amazon Resource Name (ARN) specifying the
+                          IAM role
+                      iam_role_unique_id:
+                        type: string
+                        description: Stable and unique string identifying the IAM
+                          role
+                      iam_instance_profile_arn:
+                        type: string
+                        description: ARN assigned by AWS to the instance profile
+                      iam_instance_profile_id:
+                        type: string
+                        description: Instance profile's ID
+                      iam_instance_profile_unique:
+                        type: string
+                        description: Stable and unique string identifying the IAM
+                          instance profile
+                      root_block_device:
+                        type: string
+                        description: Root block device information
+                      ebs_block_device:
+                        type: string
+                        description: EBS block device information
+                      ephemeral_block_device:
+                        type: string
+                        description: Ephemeral block device information
+                      security_group_arn:
+                        type: string
+                        description: Amazon Resource Name (ARN) of the security group
+                      security_group_id:
+                        type: string
+                        description: ID of the security group
