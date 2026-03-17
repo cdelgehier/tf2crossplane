@@ -1,0 +1,42 @@
+apiVersion: homelab.crossplane.io/v1alpha1
+kind: XStackIAMS3
+metadata:
+  name: my-app
+  namespace: crossplane-system
+spec:
+  providerConfig: aws-personal-eu-west-1
+  iam:
+    name: my-app-s3-role
+    # AWS IAM Statement IDs (Sids) must be alphanumeric only — no underscores or dashes.
+    # The map keys here become Sids in the IAM policy document.
+    trust_policy_permissions:
+      AllowAssumeRole:
+        effect: Allow
+        actions:
+          - sts:AssumeRole
+        principals:
+          - type: Service
+            identifiers:
+              - ec2.amazonaws.com
+    create_instance_profile: true
+    create_inline_policy: true
+    inline_policy_permissions:
+      S3ReadWrite:
+        effect: Allow
+        actions:
+          - s3:GetObject
+          - s3:PutObject
+          - s3:DeleteObject
+          - s3:ListBucket
+        resources:
+          - arn:aws:s3:::my-app-bucket-2026
+          - arn:aws:s3:::my-app-bucket-2026/*
+    tags:
+      env: production
+      managedBy: crossplane
+  s3:
+    bucket: my-app-bucket-2026
+    force_destroy: false
+    tags:
+      env: production
+      managedBy: crossplane

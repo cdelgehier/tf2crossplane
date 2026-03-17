@@ -1,0 +1,17 @@
+apiVersion: homelab.crossplane.io/v1alpha1
+kind: XStackEC2IAMS3
+metadata:
+  name: my-app-existing-role
+  namespace: crossplane-system
+spec:
+  providerConfig: aws-personal-eu-west-1
+  ec2:
+    ami_ssm_parameter: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+    instance_type: t3.micro
+    subnet_id: subnet-xxxxxxxxxxxxxxx
+    iam_instance_profile: my-existing-instance-profile  # not derived from existingId — must be provided manually
+    tags:
+      env: production
+      managedBy: crossplane
+  iam:
+    existingId: arn:aws:iam::123456789012:role/my-existing-role

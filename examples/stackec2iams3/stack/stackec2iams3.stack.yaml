@@ -1,0 +1,26 @@
+name: StackEC2IAMS3
+group: homelab.crossplane.io
+version: v1alpha1
+xrd_dir: ../infra
+output_dir: .
+
+resources:
+  - name: ec2
+    xrd: xec2instances
+    expose:
+      - ami_ssm_parameter
+      - instance_type
+      - subnet_id
+      - iam_instance_profile
+      - tags
+
+  - name: iam
+    xrd: xiamroles
+    optional: true
+    expose:
+      - name
+      - tags
+      - create_instance_profile
+      - create_inline_policy
+      - inline_policy_permissions
+      - trust_policy_permissions

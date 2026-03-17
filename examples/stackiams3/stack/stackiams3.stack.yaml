@@ -1,0 +1,24 @@
+name: StackIAMS3
+group: homelab.crossplane.io
+version: v1alpha1
+xrd_dir: ../infra
+output_dir: .
+
+resources:
+  - name: iam
+    xrd: xiamroles
+    optional: true
+    expose:
+      - name
+      - tags
+      - create_instance_profile
+      - create_inline_policy
+      - inline_policy_permissions
+      - trust_policy_permissions
+
+  - name: s3
+    xrd: xs3buckets
+    expose:
+      - bucket
+      - force_destroy
+      - tags
