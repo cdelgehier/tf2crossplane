@@ -103,6 +103,30 @@ def test_composition_patch_step_present_with_wires(stack_settings, infra_xrds):
     assert "patch-outputs" in steps
 
 
+def test_composition_nested_wire_target_renders_as_object(kms_xrd, ec2_xrd):
+    """A wire with a nested target (e.g. root_block_device.kms_key_id) renders as a YAML object."""
+    settings = StackSettings(
+        name="StackVM",
+        group="homelab.crossplane.io",
+        resources=[
+            ResourceDef(name="kms", xrd="xkmskeys", optional=True),
+            ResourceDef(name="ec2", xrd="xec2instances"),
+        ],
+        wires=[
+            WireDef(
+                source="kms.outputs.key_arn",
+                target="ec2.root_block_device.kms_key_id",
+            )
+        ],
+    )
+    comp = generate_stack_composition(settings, {"kms": kms_xrd, "ec2": ec2_xrd})
+    template = comp["spec"]["pipeline"][0]["input"]["inline"]["template"]
+
+    assert "root_block_device:\n    kms_key_id: {{" in template
+    # Parent field must not also appear as a plain forwarded field
+    assert "root_block_device: {{" not in template
+
+
 def test_composition_single_wire_to_array_field_renders_list(ec2_xrd, sg_xrd):
     """A single wire targeting an array-typed field renders as a YAML list, not a scalar."""
     settings = StackSettings(

@@ -44,8 +44,24 @@ def _resource_block(
 
     infra_props = xrd_spec_properties(infra_xrd) if infra_xrd else {}
 
-    inbound_lines = []
+    # Separate flat targets from nested targets (e.g. root_block_device.kms_key_id).
+    # Nested targets are grouped by their parent field and rendered as a YAML object.
+    flat_targets: dict[str, list[tuple[str, str]]] = {}
+    nested_targets: dict[
+        str, list[tuple[str, str, str]]
+    ] = {}  # parent → [(child, key, fallback)]
     for target_field, entries in by_target.items():
+        if "." in target_field:
+            parent, child = target_field.split(".", 1)
+            for status_key, fallback in entries:
+                nested_targets.setdefault(parent, []).append(
+                    (child, status_key, fallback)
+                )
+        else:
+            flat_targets[target_field] = entries
+
+    inbound_lines = []
+    for target_field, entries in flat_targets.items():
         field_type = infra_props.get(target_field, {}).get("type", "string")
         if field_type == "array" or len(entries) > 1:
             # Render as a YAML list: one entry per wire source.
@@ -60,14 +76,24 @@ def _resource_block(
                 f"  {target_field}: {{{{ (.observed.composite.resource.status.{status_key} | default .observed.composite.resource.{fallback}) }}}}"
             )
 
+    # Render nested wire targets as YAML objects (e.g. root_block_device.kms_key_id).
+    for parent, children in nested_targets.items():
+        inbound_lines.append(f"  {parent}:")
+        for child, status_key, fallback in children:
+            inbound_lines.append(
+                f"    {child}: {{{{ (.observed.composite.resource.status.{status_key} | default .observed.composite.resource.{fallback}) }}}}"
+            )
+
     inbound = ("\n" + "\n".join(inbound_lines)) if inbound_lines else ""
 
     # Build forwarded spec fields: exposed fields passed from Stack XR → composed XR spec.
-    # Skip fields already set by inbound wires.
-    wire_target_fields = {
-        wire.target.split(".", 1)[1] if "." in wire.target else wire.target
-        for wire in wires_to
-    }
+    # Skip fields already set by inbound wires. For nested targets (e.g.
+    # root_block_device.kms_key_id), skip the parent field name so it is not
+    # also forwarded wholesale from the spec.
+    wire_target_fields = set()
+    for wire in wires_to:
+        target = wire.target.split(".", 1)[1] if "." in wire.target else wire.target
+        wire_target_fields.add(target.split(".")[0] if "." in target else target)
     skip = {"providerConfig", "writeConnectionSecretToRef", "existingId", "import"}
     if resource.expose:
         fields_to_forward = [f for f in resource.expose if f not in wire_target_fields]
