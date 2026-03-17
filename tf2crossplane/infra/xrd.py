@@ -30,27 +30,19 @@ def _parse_extra_var(raw: str) -> tuple[str, dict[str, Any]]:
     return name, var_def
 
 
-_COMPLEX_OUTPUT_HINTS = ("map", "object", "list", "set")
-
-
 def _output_schema(out_def: dict[str, Any]) -> dict[str, Any]:
     """
     Return an OpenAPI schema fragment for a Terraform output.
 
-    Terraform outputs have no type declaration, so we fall back to string.
-    When the description hints at a complex type (map, object, list, set) we
-    use x-kubernetes-preserve-unknown-fields instead to avoid validation
-    errors when OpenTofu returns a non-string value at runtime.
+    Terraform outputs have no type declaration. We always use
+    x-kubernetes-preserve-unknown-fields to avoid validation errors when
+    OpenTofu returns non-string values (maps, lists, numbers) at runtime.
+    Description-based type heuristics are unreliable — e.g. an output
+    described as "The IPv6 address" can return a list.
     """
     raw_desc = out_def.get("description", "")
     description = raw_desc[0] if isinstance(raw_desc, list) else raw_desc
-    desc_lower = description.lower()
-    if any(hint in desc_lower for hint in _COMPLEX_OUTPUT_HINTS):
-        return {
-            "x-kubernetes-preserve-unknown-fields": True,
-            "description": description,
-        }
-    return {"type": "string", "description": description}
+    return {"x-kubernetes-preserve-unknown-fields": True, "description": description}
 
 
 def generate_xrd(
