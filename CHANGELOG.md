@@ -1,3 +1,11 @@
+## v0.10.0 (2026-03-17)
+
+### Feat
+
+- **infra**: propagate workspace outputs to XR status.atProvider.outputs
+
+## v0.5.0 (2026-03-17)
+
 ## v0.9.0 (2026-03-17)
 
 ### Feat
