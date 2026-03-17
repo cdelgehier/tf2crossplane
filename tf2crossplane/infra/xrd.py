@@ -115,9 +115,34 @@ def generate_xrd(
                                 "status": {
                                     "type": "object",
                                     "properties": {
-                                        "outputs": {
+                                        "atProvider": {
                                             "type": "object",
-                                            "x-kubernetes-preserve-unknown-fields": True,
+                                            "properties": {
+                                                "outputs": {
+                                                    "type": "object",
+                                                    "x-kubernetes-preserve-unknown-fields": True,
+                                                    "properties": {
+                                                        out_name: {
+                                                            "type": "string",
+                                                            "description": (
+                                                                out_def.get(
+                                                                    "description", [""]
+                                                                )[0]
+                                                                if isinstance(
+                                                                    out_def.get(
+                                                                        "description"
+                                                                    ),
+                                                                    list,
+                                                                )
+                                                                else out_def.get(
+                                                                    "description", ""
+                                                                )
+                                                            ),
+                                                        }
+                                                        for out_name, out_def in outputs.items()
+                                                    },
+                                                }
+                                            },
                                         }
                                     },
                                 },

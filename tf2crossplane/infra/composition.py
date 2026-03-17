@@ -236,6 +236,32 @@ def generate_composition(
         }
     ]
 
+    if outputs:
+        pipeline.append(
+            {
+                "step": "patch-outputs",
+                "functionRef": {"name": settings.function_patch_and_transform},
+                "input": {
+                    "apiVersion": "pt.fn.crossplane.io/v1beta1",
+                    "kind": "Resources",
+                    "resources": [
+                        {
+                            "name": "workspace",
+                            "patches": [
+                                {
+                                    "type": "ToCompositeFieldPath",
+                                    "fromFieldPath": f"status.atProvider.outputs.{out_name}",
+                                    "toFieldPath": f"status.atProvider.outputs.{out_name}",
+                                    "policy": {"fromFieldPath": "Optional"},
+                                }
+                                for out_name in outputs
+                            ],
+                        }
+                    ],
+                },
+            }
+        )
+
     if settings.auto_ready:
         pipeline.append(
             {
