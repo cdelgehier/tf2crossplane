@@ -103,6 +103,30 @@ def test_composition_patch_step_present_with_wires(stack_settings, infra_xrds):
     assert "patch-outputs" in steps
 
 
+def test_composition_single_wire_to_array_field_renders_list(ec2_xrd, sg_xrd):
+    """A single wire targeting an array-typed field renders as a YAML list, not a scalar."""
+    settings = StackSettings(
+        name="StackVM",
+        group="homelab.crossplane.io",
+        resources=[
+            ResourceDef(name="sg", xrd="xsecuritygroups", optional=True),
+            ResourceDef(name="ec2", xrd="xec2instances"),
+        ],
+        wires=[
+            WireDef(
+                source="sg.outputs.security_group_id",
+                target="ec2.vpc_security_group_ids",
+            )
+        ],
+    )
+    comp = generate_stack_composition(settings, {"sg": sg_xrd, "ec2": ec2_xrd})
+    template = comp["spec"]["pipeline"][0]["input"]["inline"]["template"]
+
+    # Must render as a list item, not a bare scalar
+    assert "vpc_security_group_ids:\n  - {{" in template
+    assert "vpc_security_group_ids: {{" not in template
+
+
 def test_composition_multi_wire_same_target_renders_list(ec2_xrd, sg_xrd, sg_db_xrd):
     """Two wires targeting the same field render a YAML list instead of two scalar assignments."""
     settings = StackSettings(

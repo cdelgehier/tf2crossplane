@@ -42,25 +42,28 @@ def _resource_block(
         fallback = wire.fallback or f"spec.{source_parts[0]}.existingId"
         by_target.setdefault(target_field, []).append((status_key, fallback))
 
+    infra_props = xrd_spec_properties(infra_xrd) if infra_xrd else {}
+
     inbound_lines = []
     for target_field, entries in by_target.items():
-        if len(entries) == 1:
-            status_key, fallback = entries[0]
-            inbound_lines.append(
-                f"  {target_field}: {{{{ (.observed.composite.resource.status.{status_key} | default .observed.composite.resource.{fallback}) }}}}"
-            )
-        else:
+        field_type = infra_props.get(target_field, {}).get("type", "string")
+        if field_type == "array" or len(entries) > 1:
+            # Render as a YAML list: one entry per wire source.
             inbound_lines.append(f"  {target_field}:")
             for status_key, fallback in entries:
                 inbound_lines.append(
                     f"  - {{{{ (.observed.composite.resource.status.{status_key} | default .observed.composite.resource.{fallback}) }}}}"
                 )
+        else:
+            status_key, fallback = entries[0]
+            inbound_lines.append(
+                f"  {target_field}: {{{{ (.observed.composite.resource.status.{status_key} | default .observed.composite.resource.{fallback}) }}}}"
+            )
 
     inbound = ("\n" + "\n".join(inbound_lines)) if inbound_lines else ""
 
     # Build forwarded spec fields: exposed fields passed from Stack XR → composed XR spec.
     # Skip fields already set by inbound wires.
-    infra_props = xrd_spec_properties(infra_xrd) if infra_xrd else {}
     wire_target_fields = {
         wire.target.split(".", 1)[1] if "." in wire.target else wire.target
         for wire in wires_to
