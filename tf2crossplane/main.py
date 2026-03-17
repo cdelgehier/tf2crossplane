@@ -48,7 +48,9 @@ def cli() -> None:
 )
 @click.option("--version", default="v1alpha1", show_default=True, help="API version")
 @click.option(
-    "--kind", default="", help="Override auto-detected kind (CamelCase, e.g. S3Bucket)"
+    "--kind",
+    default="",
+    help="Override auto-detected kind (CamelCase, e.g. S3Bucket or XS3Bucket — the X prefix is added automatically and stripped if provided)",
 )
 @click.option(
     "--provider-config-kind",
@@ -176,7 +178,15 @@ def infra(
     )
 
     module_name = module_name_from_url(module_url)
-    resolved_kind = kind or module_name_to_kind(module_name)
+    raw_kind = kind or module_name_to_kind(module_name)
+    # Strip leading X prefix — generate_xrd adds it automatically via "X" + kind.
+    # This prevents double-X kinds (e.g. --kind XKms → XXKms) when users pass
+    # the composite kind instead of the base kind.
+    resolved_kind = (
+        raw_kind[1:]
+        if (raw_kind.startswith("X") and len(raw_kind) > 1 and raw_kind[1].isupper())
+        else raw_kind
+    )
 
     LOGGER.info("Cloning %s ...", module_url)
     tmpdir_root, module_path = clone_module(module_url)
