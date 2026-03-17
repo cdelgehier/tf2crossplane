@@ -410,6 +410,25 @@ spec:
     subnet_id: subnet-0aaaa111
 ```
 
+### Static wires (literal values)
+
+When a field must always be set to a fixed value — not derived from another resource's output — use `static` instead of `source`:
+
+```yaml
+wires:
+  - static: "true"
+    target: ec2.root_block_device.encrypted
+  - static: "false"
+    target: ec2.create_security_group
+```
+
+The value is injected as a YAML literal directly into the template (no Go template expression). Useful for AWS module quirks where a flag must accompany another wired field:
+
+- `encrypted: true` is required alongside `kms_key_id` (`InvalidParameterDependency: KmsKeyId requires Encrypted`)
+- `create_security_group: false` prevents `terraform-aws-ec2-instance` (default `true`) from creating a redundant SG when `vpc_security_group_ids` is already provided externally
+
+Static wires are excluded from the `patch-outputs` step (no source to bubble up).
+
 ### Nested wire targets (object fields)
 
 When the target field is a nested property of an object (e.g. `root_block_device.kms_key_id`), use dot notation in the wire target. `tf2crossplane` renders the parent as a YAML object containing the wired child key, and excludes the parent from spec forwarding to avoid conflicts:
@@ -453,39 +472,15 @@ See [`examples/stackvm/`](examples/stackvm/) for a complete example equivalent t
 
 Wires:
 - `kms.outputs.key_arn` → `ec2.root_block_device.kms_key_id` (nested target)
+- `static: "true"` → `ec2.root_block_device.encrypted` (static wire — required by AWS alongside `kms_key_id`)
 - `security_group.outputs.security_group_id` → `ec2.vpc_security_group_ids` (array target)
+- `static: "false"` → `ec2.create_security_group` (static wire — prevent module from creating a redundant SG)
 
 ```bash
 task example:stackvm
 ```
 
-Resulting XR (see [`examples/stackvm/xr-stackvm.yaml`](examples/stackvm/xr-stackvm.yaml)):
-
-```yaml
-apiVersion: homelab.crossplane.io/v1alpha1
-kind: XStackVM
-metadata:
-  name: my-vm
-  namespace: crossplane-system
-spec:
-  providerConfig: aws-personal-eu-west-1
-  kms:
-    description: my-vm root volume encryption key
-    enable_key_rotation: true
-  security_group:
-    name: my-vm-sg
-    vpc_id: vpc-xxxxxxxxxxxxxxx
-    ingress_with_cidr_blocks:
-      - from_port: 22
-        to_port: 22
-        protocol: tcp
-        cidr_blocks: 10.0.0.0/8
-  ec2:
-    ami_ssm_parameter: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
-    instance_type: t3.micro
-    subnet_id: subnet-xxxxxxxxxxxxxxx
-    # kms_key_id and vpc_security_group_ids are wired automatically
-```
+Resulting XR (see [`examples/stackvm/xr-stackvm.yaml`](examples/stackvm/xr-stackvm.yaml)).
 
 ### Options
 
