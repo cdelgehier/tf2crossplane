@@ -31,34 +31,40 @@ def _resource_block(
 
     # Build inbound wire assignments (fields this resource receives from the XR status).
     # Multiple wires targeting the same field are rendered as a YAML list.
-    by_target: dict[str, list[tuple[str, str]]] = {}
+    # Each entry is either ("dynamic", status_key, fallback) or ("static", value, "").
+    by_target: dict[str, list[tuple[str, str, str]]] = {}
     for wire in wires_to:
         target_field = (
             wire.target.split(".", 1)[1] if "." in wire.target else wire.target
         )
-        source_parts = wire.source.split(".")
-        status_key = (
-            _to_camel(f"{source_parts[0]}_{source_parts[2]}")
-            if len(source_parts) >= 3
-            else wire.source
-        )
-        fallback = wire.fallback or f"spec.{source_parts[0]}.existingId"
-        by_target.setdefault(target_field, []).append((status_key, fallback))
+        if wire.static:
+            by_target.setdefault(target_field, []).append(("static", wire.static, ""))
+        else:
+            source_parts = wire.source.split(".")
+            status_key = (
+                _to_camel(f"{source_parts[0]}_{source_parts[2]}")
+                if len(source_parts) >= 3
+                else wire.source
+            )
+            fallback = wire.fallback or f"spec.{source_parts[0]}.existingId"
+            by_target.setdefault(target_field, []).append(
+                ("dynamic", status_key, fallback)
+            )
 
     infra_props = xrd_spec_properties(infra_xrd) if infra_xrd else {}
 
     # Separate flat targets from nested targets (e.g. root_block_device.kms_key_id).
     # Nested targets are grouped by their parent field and rendered as a YAML object.
-    flat_targets: dict[str, list[tuple[str, str]]] = {}
+    flat_targets: dict[str, list[tuple[str, str, str]]] = {}
     nested_targets: dict[
-        str, list[tuple[str, str, str]]
-    ] = {}  # parent → [(child, key, fallback)]
+        str, list[tuple[str, str, str, str]]
+    ] = {}  # parent → [(child, kind, key_or_value, fallback)]
     for target_field, entries in by_target.items():
         if "." in target_field:
             parent, child = target_field.split(".", 1)
-            for status_key, fallback in entries:
+            for kind, key_or_value, fallback in entries:
                 nested_targets.setdefault(parent, []).append(
-                    (child, status_key, fallback)
+                    (child, kind, key_or_value, fallback)
                 )
         else:
             flat_targets[target_field] = entries
@@ -69,23 +75,32 @@ def _resource_block(
         if field_type == "array" or len(entries) > 1:
             # Render as a YAML list: one entry per wire source.
             inbound_lines.append(f"  {target_field}:")
-            for status_key, fallback in entries:
-                inbound_lines.append(
-                    f"  - {{{{ (.observed.composite.resource.status.{status_key} | default .observed.composite.resource.{fallback}) }}}}"
-                )
+            for kind, key_or_value, fallback in entries:
+                if kind == "static":
+                    inbound_lines.append(f"  - {key_or_value}")
+                else:
+                    inbound_lines.append(
+                        f"  - {{{{ (.observed.composite.resource.status.{key_or_value} | default .observed.composite.resource.{fallback}) }}}}"
+                    )
         else:
-            status_key, fallback = entries[0]
-            inbound_lines.append(
-                f"  {target_field}: {{{{ (.observed.composite.resource.status.{status_key} | default .observed.composite.resource.{fallback}) }}}}"
-            )
+            kind, key_or_value, fallback = entries[0]
+            if kind == "static":
+                inbound_lines.append(f"  {target_field}: {key_or_value}")
+            else:
+                inbound_lines.append(
+                    f"  {target_field}: {{{{ (.observed.composite.resource.status.{key_or_value} | default .observed.composite.resource.{fallback}) }}}}"
+                )
 
     # Render nested wire targets as YAML objects (e.g. root_block_device.kms_key_id).
     for parent, children in nested_targets.items():
         inbound_lines.append(f"  {parent}:")
-        for child, status_key, fallback in children:
-            inbound_lines.append(
-                f"    {child}: {{{{ (.observed.composite.resource.status.{status_key} | default .observed.composite.resource.{fallback}) }}}}"
-            )
+        for child, kind, key_or_value, fallback in children:
+            if kind == "static":
+                inbound_lines.append(f"    {child}: {key_or_value}")
+            else:
+                inbound_lines.append(
+                    f"    {child}: {{{{ (.observed.composite.resource.status.{key_or_value} | default .observed.composite.resource.{fallback}) }}}}"
+                )
 
     inbound = ("\n" + "\n".join(inbound_lines)) if inbound_lines else ""
 
@@ -198,10 +213,13 @@ def generate_stack_composition(
         )
         template_parts.append(block)
 
-    # ToCompositeFieldPath patches: each wire source needs a patch step to bubble
+    # ToCompositeFieldPath patches: each dynamic wire source needs a patch step to bubble
     # the output up to the XR status so downstream resources can read it.
+    # Static wires inject a literal value and do not need a patch.
     patches = []
     for wire in settings.wires:
+        if wire.static:
+            continue
         source_parts = wire.source.split(".")
         if len(source_parts) < 3:
             continue
@@ -254,7 +272,7 @@ def generate_stack_composition(
                             ],
                         }
                         for wire in settings.wires
-                        if len(wire.source.split(".")) >= 3
+                        if not wire.static and len(wire.source.split(".")) >= 3
                     ],
                 },
             }

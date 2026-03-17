@@ -36,5 +36,7 @@ resources:
 wires:
   - source: kms.outputs.key_arn
     target: ec2.root_block_device.kms_key_id
+  - static: "true"
+    target: ec2.root_block_device.encrypted
   - source: security_group.outputs.security_group_id
     target: ec2.vpc_security_group_ids

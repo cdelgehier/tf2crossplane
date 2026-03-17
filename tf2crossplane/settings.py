@@ -47,13 +47,15 @@ class Settings(BaseModel):
 class WireDef(BaseModel):
     """A single output wiring between two resources in a Stack."""
 
-    # e.g. "kms.outputs.key_id"
-    source: str
-    # e.g. "ec2.kms_key_id"
+    # e.g. "kms.outputs.key_id" — omit when using static
+    source: str = ""
+    # e.g. "ec2.kms_key_id" or "ec2.root_block_device.kms_key_id"
     target: str
     # fallback field path on the XR spec when the source resource is not created
     # e.g. "spec.kms.existingId"
     fallback: str = ""
+    # static value to inject instead of a dynamic source — e.g. static: "true"
+    static: str = ""
 
 
 class ResourceDef(BaseModel):

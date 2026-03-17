@@ -181,3 +181,39 @@ def test_composition_multi_wire_same_target_renders_list(ec2_xrd, sg_xrd, sg_db_
     # Both SG IDs must appear as list items
     assert "- {{ (.observed.composite.resource.status.sgAdSecurityGroupId" in template
     assert "- {{ (.observed.composite.resource.status.sgDbSecurityGroupId" in template
+
+
+def test_composition_static_wire_renders_literal_value(kms_xrd, ec2_xrd):
+    """A static wire injects a literal value without any Go template expression."""
+    settings = StackSettings(
+        name="StackVM",
+        group="homelab.crossplane.io",
+        resources=[
+            ResourceDef(name="kms", xrd="xkmss", optional=True),
+            ResourceDef(name="ec2", xrd="xec2instances"),
+        ],
+        wires=[
+            WireDef(
+                source="kms.outputs.key_arn", target="ec2.root_block_device.kms_key_id"
+            ),
+            WireDef(static="true", target="ec2.root_block_device.encrypted"),
+        ],
+    )
+    infra_xrds = {"kms": kms_xrd, "ec2": ec2_xrd}
+    comp = generate_stack_composition(settings, infra_xrds)
+    template = comp["spec"]["pipeline"][0]["input"]["inline"]["template"]
+
+    # Static wire renders as a literal value, not a Go template expression
+    assert "    encrypted: true" in template
+    assert "{{ " not in template.split("encrypted:")[1].split("\n")[0]
+
+    # Dynamic wire still renders correctly alongside it
+    assert "    kms_key_id: {{" in template
+
+    # Static wire must NOT produce a patch-outputs entry
+    patch_step = next(
+        (s for s in comp["spec"]["pipeline"] if s["step"] == "patch-outputs"), None
+    )
+    assert patch_step is not None
+    patched_names = [r["name"] for r in patch_step["input"]["resources"]]
+    assert "ec2" not in patched_names
