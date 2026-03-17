@@ -1,3 +1,12 @@
+## v0.8.0 (2026-03-17)
+
+### Feat
+
+- **stack**: add stack subcommand for Composition of Compositions
+- **composition,xrd**: add --provider-config-format to compute providerConfigRef.name dynamically
+
+## v0.5.0 (2026-03-16)
+
 ## v0.7.0 (2026-03-16)
 
 ### Feat
