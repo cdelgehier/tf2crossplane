@@ -100,6 +100,19 @@ tasks:
       - task: example:stackec2iams3:infra:iam
       - task: example:stackec2iams3:stack
 
+  example:s3-computed-provider:
+    desc: Regenerate XS3Bucket XRD + Composition (examples/s3-computed-provider/) — demonstrates extra_vars, provider_config_format, secret_name_format
+    cmd: |
+      uv run tf2crossplane infra \
+        --module-url 'git::https://github.com/terraform-aws-modules/terraform-aws-s3-bucket.git?ref=v4.6.0' \
+        --output-dir examples/s3-computed-provider/infra/ \
+        --group homelab.crossplane.io \
+        --kind S3Bucket \
+        --provider-config-format 'aws-{target_account}-{target_region}' \
+        --secret-name-format '{name}-s3-creds' \
+        --extra-var 'target_account:string:AWS account ID to deploy into' \
+        --extra-var 'target_region:string:AWS region:eu-west-1'
+
   # ── Pre-commit ──────────────────────────────────────────────────────────────
 
   pre-commit-install:

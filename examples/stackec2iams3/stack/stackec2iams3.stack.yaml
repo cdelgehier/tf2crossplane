@@ -11,7 +11,7 @@ resources:
       - ami_ssm_parameter
       - instance_type
       - subnet_id
-      - iam_instance_profile
+      # iam_instance_profile is wired automatically from iam.outputs.instance_profile_name
       - tags
 
   - name: iam
@@ -24,3 +24,7 @@ resources:
       - create_inline_policy
       - inline_policy_permissions
       - trust_policy_permissions
+
+wires:
+  - source: iam.outputs.instance_profile_name
+    target: ec2.iam_instance_profile
