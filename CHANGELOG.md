@@ -1,3 +1,11 @@
+## v0.8.1 (2026-03-17)
+
+### Fix
+
+- **stack**: resolve xrd_dir and output_dir relative to stack file location
+
+## v0.5.0 (2026-03-17)
+
 ## v0.8.0 (2026-03-17)
 
 ### Feat
