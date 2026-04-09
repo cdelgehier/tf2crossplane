@@ -44,6 +44,23 @@ def test_composition_template_contains_variables(s3_variables, s3_outputs):
     assert "| toJson" in template
 
 
+def test_composition_template_propagates_claim_labels(s3_variables, s3_outputs):
+    """The Go template sets claim-name and claim-namespace labels on the Workspace."""
+    composition, _, _ = generate_composition(
+        s3_variables, s3_outputs, "S3Bucket", _settings().module_url, _settings()
+    )
+    template = composition["spec"]["pipeline"][0]["input"]["inline"]["template"]
+
+    assert (
+        'index .observed.composite.resource.metadata.labels "crossplane.io/claim-name"'
+        in template
+    )
+    assert (
+        'index .observed.composite.resource.metadata.labels "crossplane.io/claim-namespace"'
+        in template
+    )
+
+
 def test_composition_uses_provider_config_from_claim(s3_variables, s3_outputs):
     """The Go template reads providerConfig from the claim spec, not from a hard-coded value."""
     composition, _, _ = generate_composition(

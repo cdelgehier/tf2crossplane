@@ -166,6 +166,9 @@ apiVersion: {workspace_api_version}
 kind: Workspace
 metadata:
   name: {{{{ .observed.composite.resource.metadata.name }}}}
+  labels:
+    crossplane.io/claim-name: {{{{ index .observed.composite.resource.metadata.labels "crossplane.io/claim-name" }}}}
+    crossplane.io/claim-namespace: {{{{ index .observed.composite.resource.metadata.labels "crossplane.io/claim-namespace" }}}}
   annotations:
     gotemplating.fn.crossplane.io/composition-resource-name: workspace
 spec:
