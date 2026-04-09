@@ -1,3 +1,11 @@
+## v0.12.0 (2026-04-09)
+
+### Feat
+
+- **composition**: propagate claim labels to Workspace
+
+## v0.5.0 (2026-03-17)
+
 ## v0.11.0 (2026-03-17)
 
 ### Feat

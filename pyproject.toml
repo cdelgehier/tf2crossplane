@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tf2crossplane"
-version = "0.11.0"
+version = "0.12.0"
 description = "Generate Crossplane XRD + Composition from a Terraform module Git URL."
 authors = [
     {name = "Cedric DELGEHIER", email = "cedric.delgehier@gmail.com"}
@@ -22,7 +22,7 @@ tf2crossplane = "tf2crossplane.main:cli"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.11.0"
+version = "0.12.0"
 version_provider = "pep621"
 tag_format = "v$version"
 update_changelog_on_bump = true
